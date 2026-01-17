@@ -4,6 +4,6 @@ namespace PlaneCrazy.Core.Comments;
 
 public class CommentUpdatedEvent : BaseEvent
 {
-    public Guid CommentId { get; set; }
-    public string Text { get; set; } = string.Empty;
+    public Guid CommentId { get; init; }
+    public string Text { get; init; } = string.Empty;
 }

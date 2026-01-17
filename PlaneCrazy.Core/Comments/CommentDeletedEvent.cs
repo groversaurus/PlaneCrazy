@@ -4,5 +4,5 @@ namespace PlaneCrazy.Core.Comments;
 
 public class CommentDeletedEvent : BaseEvent
 {
-    public Guid CommentId { get; set; }
+    public Guid CommentId { get; init; }
 }
