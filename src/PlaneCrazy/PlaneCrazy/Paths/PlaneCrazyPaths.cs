@@ -49,10 +49,10 @@ public static class PlaneCrazyPaths
     /// <returns>The full path to the subdirectory.</returns>
     private static string GetSubdirectoryPath(string subdirectoryName)
     {
-        // Ensure base directory exists first
-        EnsureDirectoryExists(_basePath);
+        // Access BaseDirectory to ensure it exists
+        var basePath = BaseDirectory;
         
-        var path = Path.Combine(_basePath, subdirectoryName);
+        var path = Path.Combine(basePath, subdirectoryName);
         EnsureDirectoryExists(path);
         return path;
     }
