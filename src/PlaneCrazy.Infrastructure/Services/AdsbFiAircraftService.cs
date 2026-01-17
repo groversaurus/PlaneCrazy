@@ -58,7 +58,7 @@ public class AdsbFiAircraftService : IAircraftDataService
             Altitude = adsbAircraft.Alt_Baro,
             Velocity = adsbAircraft.Gs,
             Track = adsbAircraft.Track,
-            OnGround = adsbAircraft.Alt_Baro.HasValue && adsbAircraft.Alt_Baro.Value == 0,
+            OnGround = false, // Default to false; proper ground detection would require API flag
             Callsign = adsbAircraft.Flight?.Trim(),
             LastSeen = DateTime.UtcNow
         };

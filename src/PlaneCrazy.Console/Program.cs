@@ -257,7 +257,10 @@ class Program
                 System.Console.WriteLine($"  Comments ({commentList.Count}):");
                 foreach (var comment in commentList.Take(3))
                 {
-                    System.Console.WriteLine($"    - {comment.Text.Substring(0, Math.Min(50, comment.Text.Length))}...");
+                    var preview = comment.Text.Length > 50 
+                        ? comment.Text.Substring(0, 50) + "..." 
+                        : comment.Text;
+                    System.Console.WriteLine($"    - {preview}");
                 }
             }
             System.Console.WriteLine();
@@ -495,7 +498,10 @@ class Program
                     break;
                 case CommentAdded ca:
                     System.Console.WriteLine($"  Entity: {ca.EntityType}/{ca.EntityId}");
-                    System.Console.WriteLine($"  Comment: {ca.CommentText.Substring(0, Math.Min(50, ca.CommentText.Length))}...");
+                    var commentPreview = ca.CommentText.Length > 50 
+                        ? ca.CommentText.Substring(0, 50) + "..." 
+                        : ca.CommentText;
+                    System.Console.WriteLine($"  Comment: {commentPreview}");
                     break;
             }
             

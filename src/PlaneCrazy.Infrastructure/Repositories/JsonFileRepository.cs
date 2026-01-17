@@ -59,8 +59,19 @@ public abstract class JsonFileRepository<T> : IRepository<T> where T : class
         await _semaphore.WaitAsync();
         try
         {
-            var all = (await GetAllAsync()).ToList();
-            var existingIndex = all.FindIndex(e => GetEntityId(e) == GetEntityId(entity));
+            List<T> all;
+            if (!File.Exists(_filePath))
+            {
+                all = new List<T>();
+            }
+            else
+            {
+                var json = await File.ReadAllTextAsync(_filePath);
+                all = JsonSerializer.Deserialize<List<T>>(json, _jsonOptions) ?? new List<T>();
+            }
+            
+            var entityId = GetEntityId(entity);
+            var existingIndex = all.FindIndex(e => GetEntityId(e) == entityId);
             
             if (existingIndex >= 0)
             {
@@ -71,8 +82,8 @@ public abstract class JsonFileRepository<T> : IRepository<T> where T : class
                 all.Add(entity);
             }
 
-            var json = JsonSerializer.Serialize(all, _jsonOptions);
-            await File.WriteAllTextAsync(_filePath, json);
+            var outputJson = JsonSerializer.Serialize(all, _jsonOptions);
+            await File.WriteAllTextAsync(_filePath, outputJson);
         }
         finally
         {
@@ -85,11 +96,18 @@ public abstract class JsonFileRepository<T> : IRepository<T> where T : class
         await _semaphore.WaitAsync();
         try
         {
-            var all = (await GetAllAsync()).ToList();
+            if (!File.Exists(_filePath))
+            {
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(_filePath);
+            var all = JsonSerializer.Deserialize<List<T>>(json, _jsonOptions) ?? new List<T>();
+            
             all.RemoveAll(e => GetEntityId(e) == id);
             
-            var json = JsonSerializer.Serialize(all, _jsonOptions);
-            await File.WriteAllTextAsync(_filePath, json);
+            var outputJson = JsonSerializer.Serialize(all, _jsonOptions);
+            await File.WriteAllTextAsync(_filePath, outputJson);
         }
         finally
         {
