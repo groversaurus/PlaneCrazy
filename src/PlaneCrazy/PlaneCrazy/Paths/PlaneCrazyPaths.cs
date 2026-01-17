@@ -59,13 +59,12 @@ public static class PlaneCrazyPaths
 
     /// <summary>
     /// Ensures the specified directory exists, creating it if necessary.
+    /// Directory.CreateDirectory is thread-safe and idempotent - it will create
+    /// the directory if it doesn't exist, or do nothing if it already exists.
     /// </summary>
     /// <param name="path">The directory path to ensure exists.</param>
     private static void EnsureDirectoryExists(string path)
     {
-        if (!Directory.Exists(path))
-        {
-            Directory.CreateDirectory(path);
-        }
+        Directory.CreateDirectory(path);
     }
 }
