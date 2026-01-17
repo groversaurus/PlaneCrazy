@@ -1,0 +1,109 @@
+@page "/aircraft"
+@using PlaneCrazy.Core.Models
+@using PlaneCrazy.Core.Services
+@inject IAircraftDataService AircraftDataService
+@rendermode InteractiveServer
+
+<PageTitle>Aircraft Tracker</PageTitle>
+
+<h1>Aircraft Tracker</h1>
+
+<p>View all tracked aircraft from ADS-B data.</p>
+
+@if (aircraft == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!aircraft.Any())
+{
+    <p><em>No aircraft currently tracked.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ICAO24</th>
+                <th>Callsign</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Altitude (ft)</th>
+                <th>Speed (kts)</th>
+                <th>Heading</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ac in aircraft)
+            {
+                <tr>
+                    <td>@ac.Icao24</td>
+                    <td>@(ac.Callsign ?? "N/A")</td>
+                    <td>@(ac.Latitude?.ToString("F4") ?? "N/A")</td>
+                    <td>@(ac.Longitude?.ToString("F4") ?? "N/A")</td>
+                    <td>@(ac.Altitude?.ToString() ?? "N/A")</td>
+                    <td>@(ac.GroundSpeed?.ToString("F1") ?? "N/A")</td>
+                    <td>@(ac.Heading?.ToString("F0") ?? "N/A")</td>
+                    <td>@ac.LastSeen.ToString("HH:mm:ss")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<button class="btn btn-primary" @onclick="LoadData">Refresh</button>
+
+@code {
+    private IEnumerable<AircraftData>? aircraft;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        
+        // Add sample data if none exists
+        if (aircraft != null && !aircraft.Any())
+        {
+            await AddSampleDataAsync();
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        aircraft = await AircraftDataService.GetAllAircraftAsync();
+    }
+
+    private async Task AddSampleDataAsync()
+    {
+        var sampleAircraft = new[]
+        {
+            new AircraftData
+            {
+                Icao24 = "A12345",
+                Callsign = "AAL123",
+                Latitude = 40.7128,
+                Longitude = -74.0060,
+                Altitude = 35000,
+                GroundSpeed = 450,
+                Heading = 90,
+                VerticalRate = 0
+            },
+            new AircraftData
+            {
+                Icao24 = "B67890",
+                Callsign = "UAL456",
+                Latitude = 34.0522,
+                Longitude = -118.2437,
+                Altitude = 28000,
+                GroundSpeed = 420,
+                Heading = 270,
+                VerticalRate = -500
+            }
+        };
+
+        foreach (var ac in sampleAircraft)
+        {
+            await AircraftDataService.AddOrUpdateAircraftAsync(ac);
+        }
+    }
+}
