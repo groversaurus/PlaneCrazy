@@ -27,42 +27,34 @@ public static class PlaneCrazyPaths
     /// Gets the Config subdirectory path (Documents/PlaneCrazy/Config).
     /// Ensures the directory exists when accessed.
     /// </summary>
-    public static string ConfigDirectory
-    {
-        get
-        {
-            var path = Path.Combine(_basePath, "Config");
-            EnsureDirectoryExists(path);
-            return path;
-        }
-    }
+    public static string ConfigDirectory => GetSubdirectoryPath("Config");
 
     /// <summary>
     /// Gets the Data subdirectory path (Documents/PlaneCrazy/Data).
     /// Ensures the directory exists when accessed.
     /// </summary>
-    public static string DataDirectory
-    {
-        get
-        {
-            var path = Path.Combine(_basePath, "Data");
-            EnsureDirectoryExists(path);
-            return path;
-        }
-    }
+    public static string DataDirectory => GetSubdirectoryPath("Data");
 
     /// <summary>
     /// Gets the Events subdirectory path (Documents/PlaneCrazy/Events).
     /// Ensures the directory exists when accessed.
     /// </summary>
-    public static string EventsDirectory
+    public static string EventsDirectory => GetSubdirectoryPath("Events");
+
+    /// <summary>
+    /// Gets a subdirectory path under the base PlaneCrazy directory.
+    /// Ensures both the base directory and subdirectory exist.
+    /// </summary>
+    /// <param name="subdirectoryName">The name of the subdirectory.</param>
+    /// <returns>The full path to the subdirectory.</returns>
+    private static string GetSubdirectoryPath(string subdirectoryName)
     {
-        get
-        {
-            var path = Path.Combine(_basePath, "Events");
-            EnsureDirectoryExists(path);
-            return path;
-        }
+        // Ensure base directory exists first
+        EnsureDirectoryExists(_basePath);
+        
+        var path = Path.Combine(_basePath, subdirectoryName);
+        EnsureDirectoryExists(path);
+        return path;
     }
 
     /// <summary>
