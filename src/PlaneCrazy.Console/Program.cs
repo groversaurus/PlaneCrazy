@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure;
@@ -29,6 +30,11 @@ class Program
     {
         // Build the host with background services
         var builder = Host.CreateApplicationBuilder(args);
+        
+        // Configure logging
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+        builder.Logging.SetMinimumLevel(LogLevel.Information);
         
         // Add all infrastructure services (repositories, event store, projections, HTTP services, background services)
         builder.Services.AddPlaneCrazyInfrastructure();

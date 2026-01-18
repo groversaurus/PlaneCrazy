@@ -24,6 +24,12 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddPlaneCrazyInfrastructure(this IServiceCollection services)
     {
+        // Add logging (if not already added by the host)
+        services.AddLogging(builder => 
+        {
+            // Configuration can be overridden by the host application
+        });
+
         // Register Event Store as Singleton (maintains event history state)
         services.AddSingleton<IEventStore, JsonFileEventStore>();
 
