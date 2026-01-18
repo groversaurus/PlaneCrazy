@@ -5,6 +5,26 @@ namespace PlaneCrazy.Domain.Validation.Validators;
 /// </summary>
 public class TextValidator : IValidator<string?>
 {
+    /// <summary>
+    /// Maximum length for comment text.
+    /// </summary>
+    public const int CommentTextMaxLength = 5000;
+    
+    /// <summary>
+    /// Maximum length for user names.
+    /// </summary>
+    public const int UserNameMaxLength = 100;
+    
+    /// <summary>
+    /// Maximum length for deletion/edit reasons.
+    /// </summary>
+    public const int ReasonMaxLength = 500;
+    
+    /// <summary>
+    /// Maximum length for type and airport names.
+    /// </summary>
+    public const int NameMaxLength = 200;
+    
     private readonly int _minLength;
     private readonly int _maxLength;
     private readonly bool _required;
@@ -57,25 +77,25 @@ public class TextValidator : IValidator<string?>
     /// <summary>
     /// Creates a validator for comment text (max 5000 characters).
     /// </summary>
-    public static TextValidator ForCommentText() => new(minLength: 1, maxLength: 5000, required: true, fieldName: "Comment text");
+    public static TextValidator ForCommentText() => new(minLength: 1, maxLength: CommentTextMaxLength, required: true, fieldName: "Comment text");
     
     /// <summary>
     /// Creates a validator for user names (max 100 characters, optional).
     /// </summary>
-    public static TextValidator ForUserName() => new(minLength: 1, maxLength: 100, required: false, fieldName: "User name");
+    public static TextValidator ForUserName() => new(minLength: 1, maxLength: UserNameMaxLength, required: false, fieldName: "User name");
     
     /// <summary>
     /// Creates a validator for reasons (max 500 characters, optional).
     /// </summary>
-    public static TextValidator ForReason() => new(minLength: 1, maxLength: 500, required: false, fieldName: "Reason");
+    public static TextValidator ForReason() => new(minLength: 1, maxLength: ReasonMaxLength, required: false, fieldName: "Reason");
     
     /// <summary>
     /// Creates a validator for type names (max 200 characters, optional).
     /// </summary>
-    public static TextValidator ForTypeName() => new(minLength: 1, maxLength: 200, required: false, fieldName: "Type name");
+    public static TextValidator ForTypeName() => new(minLength: 1, maxLength: NameMaxLength, required: false, fieldName: "Type name");
     
     /// <summary>
     /// Creates a validator for airport names (max 200 characters, optional).
     /// </summary>
-    public static TextValidator ForAirportName() => new(minLength: 1, maxLength: 200, required: false, fieldName: "Airport name");
+    public static TextValidator ForAirportName() => new(minLength: 1, maxLength: NameMaxLength, required: false, fieldName: "Airport name");
 }

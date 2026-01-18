@@ -15,6 +15,16 @@ public static class EventValidator
     private static readonly EntityTypeValidator _entityTypeValidator = new();
     
     /// <summary>
+    /// Minimum allowed timestamp for events (year 2000).
+    /// </summary>
+    private static readonly DateTime MinTimestamp = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    
+    /// <summary>
+    /// Clock skew buffer in minutes to allow for slightly future timestamps.
+    /// </summary>
+    private const int ClockSkewBufferMinutes = 5;
+    
+    /// <summary>
     /// Validates a domain event before persistence.
     /// </summary>
     public static ValidationResult Validate(DomainEvent domainEvent)
@@ -223,16 +233,15 @@ public static class EventValidator
     }
     
     /// <summary>
-    /// Validates that a timestamp is reasonable (not in future, not before 2000).
+    /// Validates that a timestamp is reasonable (not in future, not before minimum date).
     /// </summary>
     private static void ValidateTimestamp(DateTime timestamp, List<string> errors)
     {
-        var minDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var maxDate = DateTime.UtcNow.AddMinutes(5); // Allow 5 minutes buffer for clock skew
+        var maxDate = DateTime.UtcNow.AddMinutes(ClockSkewBufferMinutes);
         
-        if (timestamp < minDate)
+        if (timestamp < MinTimestamp)
         {
-            errors.Add($"Timestamp cannot be before {minDate:yyyy-MM-dd} (found {timestamp:yyyy-MM-dd})");
+            errors.Add($"Timestamp cannot be before {MinTimestamp:yyyy-MM-dd} (found {timestamp:yyyy-MM-dd})");
         }
         
         if (timestamp > maxDate)

@@ -65,7 +65,7 @@ public class TextValidatorTests
         Assert.False(validator.Validate("").IsValid);
         
         // Too long comment
-        var longText = new string('x', 5001);
+        var longText = new string('x', TextValidator.CommentTextMaxLength + 1);
         Assert.False(validator.Validate(longText).IsValid);
     }
 
@@ -81,7 +81,7 @@ public class TextValidatorTests
         Assert.True(validator.Validate("").IsValid);
         
         // Too long
-        var longName = new string('x', 101);
+        var longName = new string('x', TextValidator.UserNameMaxLength + 1);
         Assert.False(validator.Validate(longName).IsValid);
     }
 
@@ -97,7 +97,7 @@ public class TextValidatorTests
         Assert.True(validator.Validate("").IsValid);
         
         // Too long
-        var longReason = new string('x', 501);
+        var longReason = new string('x', TextValidator.ReasonMaxLength + 1);
         Assert.False(validator.Validate(longReason).IsValid);
     }
 }
