@@ -4,6 +4,7 @@ using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure.CommandHandlers;
 using PlaneCrazy.Infrastructure.EventStore;
 using PlaneCrazy.Infrastructure.Http;
+using PlaneCrazy.Infrastructure.Models;
 using PlaneCrazy.Infrastructure.Projections;
 using PlaneCrazy.Infrastructure.QueryServices;
 using PlaneCrazy.Infrastructure.Repositories;
@@ -66,6 +67,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAircraftQueryService, AircraftQueryService>();
         services.AddSingleton<ICommentQueryService, CommentQueryService>();
         services.AddSingleton<IFavouriteQueryService, FavouriteQueryService>();
+
+        // Register Poller Configuration as Singleton
+        services.AddSingleton<PollerConfiguration>(new PollerConfiguration());
+
+        // Register Background Services
+        services.AddHostedService<BackgroundAdsBPoller>();
 
         return services;
     }

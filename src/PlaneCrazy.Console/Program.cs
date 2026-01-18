@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure;
@@ -10,6 +11,7 @@ namespace PlaneCrazy.Console;
 
 class Program
 {
+    private static IHost _host = null!;
     private static IServiceProvider _serviceProvider = null!;
     private static IEventStore _eventStore = null!;
     private static IEventDispatcher _dispatcher = null!;
@@ -25,15 +27,29 @@ class Program
 
     static async Task Main(string[] args)
     {
-        ConfigureServices();
+        // Build the host with background services
+        var builder = Host.CreateApplicationBuilder(args);
+        
+        // Add all infrastructure services (repositories, event store, projections, HTTP services, background services)
+        builder.Services.AddPlaneCrazyInfrastructure();
+        
+        _host = builder.Build();
+        _serviceProvider = _host.Services;
+        
+        // Initialize app and projections
         InitializeApp();
         await RebuildProjectionsAsync();
+
+        // Start background services (non-blocking)
+        _ = _host.RunAsync();
 
         System.Console.Clear();
         System.Console.WriteLine("╔═══════════════════════════════════════╗");
         System.Console.WriteLine("║         PlaneCrazy v1.0               ║");
         System.Console.WriteLine("║   ADS-B Aircraft Tracking System      ║");
         System.Console.WriteLine("╚═══════════════════════════════════════╝");
+        System.Console.WriteLine();
+        System.Console.WriteLine("Background polling is active!");
         System.Console.WriteLine();
 
         bool running = true;
@@ -71,17 +87,9 @@ class Program
             }
         }
 
-        System.Console.WriteLine("\nThank you for using PlaneCrazy!");
-    }
-
-    private static void ConfigureServices()
-    {
-        var services = new ServiceCollection();
-        
-        // Add all infrastructure services (repositories, event store, projections, HTTP services)
-        services.AddPlaneCrazyInfrastructure();
-
-        _serviceProvider = services.BuildServiceProvider();
+        System.Console.WriteLine("\nStopping background services...");
+        await _host.StopAsync();
+        System.Console.WriteLine("Thank you for using PlaneCrazy!");
     }
 
     private static void InitializeApp()
