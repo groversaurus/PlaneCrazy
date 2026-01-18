@@ -25,7 +25,7 @@ public class FavouriteAircraftTypeCommand : Command
         if (string.IsNullOrWhiteSpace(TypeCode))
             throw new ArgumentException("TypeCode cannot be empty.", nameof(TypeCode));
         
-        // Type codes are typically 3-5 characters
+        // Type codes are typically 2-10 characters
         if (TypeCode.Length < 2 || TypeCode.Length > 10)
             throw new ArgumentException("TypeCode must be between 2 and 10 characters.", nameof(TypeCode));
     }

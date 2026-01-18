@@ -5,6 +5,13 @@ namespace PlaneCrazy.Infrastructure.Repositories;
 
 public class FavouriteRepository : JsonFileRepository<Favourite>
 {
+    // Metadata key constants
+    private const string RegistrationKey = "Registration";
+    private const string TypeCodeKey = "TypeCode";
+    private const string TypeNameKey = "TypeName";
+    private const string NameKey = "Name";
+    private const string UserKey = "User";
+    
     public FavouriteRepository() 
         : base("favourites.json")
     {
@@ -35,13 +42,13 @@ public class FavouriteRepository : JsonFileRepository<Favourite>
         };
         
         if (!string.IsNullOrWhiteSpace(registration))
-            favourite.Metadata["Registration"] = registration;
+            favourite.Metadata[RegistrationKey] = registration;
         
         if (!string.IsNullOrWhiteSpace(typeCode))
-            favourite.Metadata["TypeCode"] = typeCode;
+            favourite.Metadata[TypeCodeKey] = typeCode;
         
         if (!string.IsNullOrWhiteSpace(user))
-            favourite.Metadata["User"] = user;
+            favourite.Metadata[UserKey] = user;
         
         await SaveAsync(favourite);
     }
@@ -71,10 +78,10 @@ public class FavouriteRepository : JsonFileRepository<Favourite>
         };
         
         if (!string.IsNullOrWhiteSpace(typeName))
-            favourite.Metadata["TypeName"] = typeName;
+            favourite.Metadata[TypeNameKey] = typeName;
         
         if (!string.IsNullOrWhiteSpace(user))
-            favourite.Metadata["User"] = user;
+            favourite.Metadata[UserKey] = user;
         
         await SaveAsync(favourite);
     }
@@ -104,10 +111,10 @@ public class FavouriteRepository : JsonFileRepository<Favourite>
         };
         
         if (!string.IsNullOrWhiteSpace(name))
-            favourite.Metadata["Name"] = name;
+            favourite.Metadata[NameKey] = name;
         
         if (!string.IsNullOrWhiteSpace(user))
-            favourite.Metadata["User"] = user;
+            favourite.Metadata[UserKey] = user;
         
         await SaveAsync(favourite);
     }
