@@ -26,9 +26,16 @@ Infrastructure implementations:
 - **Repositories**: JSON file-based repositories for entities
 - **Services**: ADS-B data service for fetching aircraft data from adsb.fi
 - **Projections**: Build read models from domain events
+- **Dependency Injection**: Extension methods for service registration
 
 ### PlaneCrazy.Console
 Console user interface with menu-driven navigation.
+
+## Dependency Injection
+
+The application uses Microsoft.Extensions.DependencyInjection for managing service lifetimes and dependencies. All infrastructure services, repositories, event stores, and projections are registered through the DI container.
+
+For detailed information about the DI setup, see [Dependency Injection Documentation](docs/DEPENDENCY_INJECTION.md).
 
 ## Data Storage
 
@@ -58,6 +65,8 @@ dotnet run
 ## Technology Stack
 
 - .NET 10.0
+- Microsoft.Extensions.DependencyInjection for dependency injection
+- Microsoft.Extensions.Http for HttpClient factory
 - System.Text.Json for JSON serialization
 - Event sourcing pattern
 - Repository pattern
