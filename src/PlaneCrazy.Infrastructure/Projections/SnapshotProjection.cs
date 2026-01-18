@@ -264,11 +264,7 @@ public class SnapshotProjection
         aircraft.OnGround = @event.OnGround;
         aircraft.LastSeen = @event.Timestamp;
         aircraft.LastUpdated = @event.OccurredAt;
-
-        if (aircraft.TotalUpdates == 0)
-            aircraft.TotalUpdates = 1;
-        else
-            aircraft.TotalUpdates++;
+        aircraft.TotalUpdates++;
 
         return aircraft;
     }
