@@ -19,6 +19,9 @@ class Program
     private static IAircraftDataService _aircraftService = null!;
     private static FavouriteProjection _favouriteProjection = null!;
     private static CommentProjection _commentProjection = null!;
+    private static IAircraftQueryService _aircraftQueryService = null!;
+    private static ICommentQueryService _commentQueryService = null!;
+    private static IFavouriteQueryService _favouriteQueryService = null!;
 
     static async Task Main(string[] args)
     {
@@ -95,6 +98,9 @@ class Program
         _aircraftService = _serviceProvider.GetRequiredService<IAircraftDataService>();
         _favouriteProjection = _serviceProvider.GetRequiredService<FavouriteProjection>();
         _commentProjection = _serviceProvider.GetRequiredService<CommentProjection>();
+        _aircraftQueryService = _serviceProvider.GetRequiredService<IAircraftQueryService>();
+        _commentQueryService = _serviceProvider.GetRequiredService<ICommentQueryService>();
+        _favouriteQueryService = _serviceProvider.GetRequiredService<IFavouriteQueryService>();
         
         // Show projection statistics
         var stats = _dispatcher.GetProjectionStatistics();
@@ -245,7 +251,7 @@ class Program
         System.Console.WriteLine($"╚═══════════════════════════════════════╝");
         System.Console.WriteLine();
 
-        var favourites = await _favouriteRepo.GetByEntityTypeAsync(entityType);
+        var favourites = await _favouriteQueryService.GetFavouritesByTypeAsync(entityType);
         var favList = favourites.ToList();
 
         if (!favList.Any())
@@ -267,10 +273,10 @@ class Program
             }
             
             // Show comments
-            var comments = await _commentRepo.GetActiveByEntityAsync(entityType, fav.EntityId);
-            var commentList = comments.ToList();
-            if (commentList.Any())
+            if (fav.CommentCount > 0)
             {
+                var comments = await _commentQueryService.GetActiveCommentsForEntityAsync(entityType, fav.EntityId);
+                var commentList = comments.ToList();
                 System.Console.WriteLine($"  Comments ({commentList.Count}):");
                 foreach (var comment in commentList.Take(3))
                 {
@@ -461,8 +467,8 @@ class Program
             return;
         }
 
-        // Use GetActiveByEntityAsync to exclude deleted comments
-        var comments = await _commentRepo.GetActiveByEntityAsync(entityType, entityId);
+        // Use GetActiveCommentsForEntityAsync to exclude deleted comments
+        var comments = await _commentQueryService.GetActiveCommentsForEntityAsync(entityType, entityId);
         var commentList = comments.ToList();
 
         System.Console.WriteLine($"\nComments for {entityType} {entityId}:");
