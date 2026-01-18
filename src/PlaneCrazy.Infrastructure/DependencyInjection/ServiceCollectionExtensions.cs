@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Infrastructure.CommandHandlers;
 using PlaneCrazy.Infrastructure.EventStore;
 using PlaneCrazy.Infrastructure.Http;
 using PlaneCrazy.Infrastructure.Projections;
@@ -37,6 +39,17 @@ public static class ServiceCollectionExtensions
 
         // Register Aircraft Data Service as Singleton
         services.AddSingleton<IAircraftDataService, AdsbFiAircraftService>();
+
+        // Register Command Handlers as Transient (stateless handlers created per request)
+        services.AddTransient<ICommandHandler<AddCommentCommand>, AddCommentCommandHandler>();
+        services.AddTransient<ICommandHandler<EditCommentCommand>, EditCommentCommandHandler>();
+        services.AddTransient<ICommandHandler<DeleteCommentCommand>, DeleteCommentCommandHandler>();
+        services.AddTransient<ICommandHandler<FavouriteAircraftCommand>, FavouriteAircraftCommandHandler>();
+        services.AddTransient<ICommandHandler<UnfavouriteAircraftCommand>, UnfavouriteAircraftCommandHandler>();
+        services.AddTransient<ICommandHandler<FavouriteAircraftTypeCommand>, FavouriteAircraftTypeCommandHandler>();
+        services.AddTransient<ICommandHandler<UnfavouriteAircraftTypeCommand>, UnfavouriteAircraftTypeCommandHandler>();
+        services.AddTransient<ICommandHandler<FavouriteAirportCommand>, FavouriteAirportCommandHandler>();
+        services.AddTransient<ICommandHandler<UnfavouriteAirportCommand>, UnfavouriteAirportCommandHandler>();
 
         return services;
     }
