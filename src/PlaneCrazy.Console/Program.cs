@@ -248,7 +248,7 @@ class Program
             }
             
             // Show comments
-            var comments = await _commentRepo.GetByEntityAsync(entityType, fav.EntityId);
+            var comments = await _commentRepo.GetActiveByEntityAsync(entityType, fav.EntityId);
             var commentList = comments.ToList();
             if (commentList.Any())
             {
@@ -413,7 +413,8 @@ class Program
             return;
         }
 
-        var comments = await _commentRepo.GetByEntityAsync(entityType, entityId);
+        // Use GetActiveByEntityAsync to exclude deleted comments
+        var comments = await _commentRepo.GetActiveByEntityAsync(entityType, entityId);
         var commentList = comments.ToList();
 
         System.Console.WriteLine($"\nComments for {entityType} {entityId}:");
@@ -427,8 +428,17 @@ class Program
 
         foreach (var comment in commentList)
         {
-            System.Console.WriteLine($"┌─ {comment.CreatedAt:yyyy-MM-dd HH:mm:ss} ─────");
+            var editedMarker = comment.UpdatedAt.HasValue ? " (edited)" : "";
+            System.Console.WriteLine($"┌─ {comment.CreatedAt:yyyy-MM-dd HH:mm:ss}{editedMarker} ─────");
+            if (!string.IsNullOrEmpty(comment.CreatedBy))
+            {
+                System.Console.WriteLine($"│ By: {comment.CreatedBy}");
+            }
             System.Console.WriteLine($"│ {comment.Text}");
+            if (comment.UpdatedAt.HasValue)
+            {
+                System.Console.WriteLine($"│ Last edited: {comment.UpdatedAt:yyyy-MM-dd HH:mm:ss} by {comment.UpdatedBy}");
+            }
             System.Console.WriteLine($"└────────────────────────────");
             System.Console.WriteLine();
         }
