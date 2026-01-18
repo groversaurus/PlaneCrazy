@@ -135,6 +135,8 @@ public class JsonFileEventStore : IEventStore
             nameof(AirportFavourited) => data.Deserialize<AirportFavourited>(options),
             nameof(AirportUnfavourited) => data.Deserialize<AirportUnfavourited>(options),
             nameof(CommentAdded) => data.Deserialize<CommentAdded>(options),
+            nameof(CommentEdited) => data.Deserialize<CommentEdited>(options),
+            nameof(CommentDeleted) => data.Deserialize<CommentDeleted>(options),
             _ => null
         };
     }

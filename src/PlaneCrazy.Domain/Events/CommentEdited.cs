@@ -1,9 +1,9 @@
 namespace PlaneCrazy.Domain.Events;
 
 /// <summary>
-/// Event raised when a comment is added to an entity.
+/// Event raised when a comment is edited.
 /// </summary>
-public class CommentAdded : DomainEvent
+public class CommentEdited : DomainEvent
 {
     /// <summary>
     /// The type of entity the comment is associated with (e.g., "Aircraft", "Type", "Airport").
@@ -16,24 +16,29 @@ public class CommentAdded : DomainEvent
     public required string EntityId { get; init; }
     
     /// <summary>
-    /// The unique identifier for this comment.
+    /// The unique identifier of the comment being edited.
     /// </summary>
-    public Guid CommentId { get; init; } = Guid.NewGuid();
+    public required Guid CommentId { get; init; }
     
     /// <summary>
-    /// The text content of the comment.
+    /// The new text content of the comment.
     /// </summary>
     public required string Text { get; init; }
     
     /// <summary>
-    /// The username or identifier of the user who created the comment.
+    /// The username or identifier of the user who edited the comment.
     /// </summary>
     public string? User { get; init; }
     
     /// <summary>
-    /// The timestamp when the comment was created. Defaults to event occurrence time.
+    /// The timestamp when the comment was edited. Defaults to event occurrence time.
     /// </summary>
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// The previous text content before the edit (optional, for audit trail).
+    /// </summary>
+    public string? PreviousText { get; init; }
     
     public override string? GetEntityType() => EntityType;
     public override string? GetEntityId() => EntityId;

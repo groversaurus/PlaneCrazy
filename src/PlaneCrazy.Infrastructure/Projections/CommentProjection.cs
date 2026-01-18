@@ -27,16 +27,33 @@ public class CommentProjection
 
     private async Task ApplyEventAsync(DomainEvent @event)
     {
-        if (@event is CommentAdded commentAdded)
+        switch (@event)
         {
-            await _commentRepository.SaveAsync(new Domain.Entities.Comment
-            {
-                Id = commentAdded.CommentId,
-                EntityType = commentAdded.EntityType,
-                EntityId = commentAdded.EntityId,
-                Text = commentAdded.CommentText,
-                CreatedAt = commentAdded.OccurredAt
-            });
+            case CommentAdded commentAdded:
+                await _commentRepository.SaveAsync(new Domain.Entities.Comment
+                {
+                    Id = commentAdded.CommentId,
+                    EntityType = commentAdded.EntityType,
+                    EntityId = commentAdded.EntityId,
+                    Text = commentAdded.Text,
+                    CreatedAt = commentAdded.Timestamp
+                });
+                break;
+                
+            case CommentEdited commentEdited:
+                var existingComment = await _commentRepository.GetByIdAsync(commentEdited.CommentId.ToString());
+                if (existingComment != null)
+                {
+                    existingComment.Text = commentEdited.Text;
+                    existingComment.UpdatedAt = commentEdited.Timestamp;
+                    existingComment.UpdatedBy = commentEdited.User;
+                    await _commentRepository.SaveAsync(existingComment);
+                }
+                break;
+                
+            case CommentDeleted commentDeleted:
+                await _commentRepository.DeleteAsync(commentDeleted.CommentId.ToString());
+                break;
         }
     }
 }

@@ -7,4 +7,6 @@ public class Comment
     public required string EntityId { get; init; }
     public required string Text { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
 }
