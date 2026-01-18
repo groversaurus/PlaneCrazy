@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -22,14 +24,8 @@ public class FavouriteAirportCommand : Command
     
     public override void Validate()
     {
-        if (string.IsNullOrWhiteSpace(IcaoCode))
-            throw new ArgumentException("IcaoCode cannot be empty.", nameof(IcaoCode));
-        
-        // ICAO codes are 4 characters
-        if (IcaoCode.Length != 4)
-            throw new ArgumentException("IcaoCode must be 4 characters.", nameof(IcaoCode));
-        
-        if (!System.Text.RegularExpressions.Regex.IsMatch(IcaoCode, "^[A-Z]{4}$"))
-            throw new ArgumentException("IcaoCode must be 4 uppercase letters.", nameof(IcaoCode));
+        var result = CommandValidator.ValidateFavouriteAirport(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }

@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -17,7 +19,8 @@ public class UnfavouriteAirportCommand : Command
     
     public override void Validate()
     {
-        if (string.IsNullOrWhiteSpace(IcaoCode))
-            throw new ArgumentException("IcaoCode cannot be empty.", nameof(IcaoCode));
+        var result = CommandValidator.ValidateUnfavouriteAirport(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }

@@ -3,6 +3,7 @@ using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Domain.Validation;
 using PlaneCrazy.Infrastructure.Projections;
 
 namespace PlaneCrazy.Infrastructure.CommandHandlers;
@@ -83,6 +84,12 @@ public class DeleteCommentCommandHandler : ICommandHandler<DeleteCommentCommand>
             
             _logger?.LogInformation("Successfully handled DeleteComment command for comment {CommentId}", 
                 command.CommentId);
+        }
+        catch (ValidationException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for DeleteComment command: {Errors}", 
+                string.Join(", ", ex.ValidationErrors));
+            throw;
         }
         catch (ArgumentException ex)
         {

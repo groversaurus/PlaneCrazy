@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -37,19 +39,8 @@ public class EditCommentCommand : Command
     
     public override void Validate()
     {
-        if (CommentId == Guid.Empty)
-            throw new ArgumentException("CommentId cannot be empty.", nameof(CommentId));
-        
-        if (string.IsNullOrWhiteSpace(EntityType))
-            throw new ArgumentException("EntityType cannot be empty.", nameof(EntityType));
-        
-        if (string.IsNullOrWhiteSpace(EntityId))
-            throw new ArgumentException("EntityId cannot be empty.", nameof(EntityId));
-        
-        if (string.IsNullOrWhiteSpace(NewText))
-            throw new ArgumentException("NewText cannot be empty.", nameof(NewText));
-        
-        if (NewText.Length > 5000)
-            throw new ArgumentException("NewText cannot exceed 5000 characters.", nameof(NewText));
+        var result = CommandValidator.ValidateEditComment(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }
