@@ -4,10 +4,12 @@ using PlaneCrazy.Infrastructure.Repositories;
 
 namespace PlaneCrazy.Infrastructure.Projections;
 
-public class CommentProjection
+public class CommentProjection : IProjection
 {
     private readonly IEventStore _eventStore;
     private readonly CommentRepository _commentRepository;
+
+    public string ProjectionName => "CommentProjection";
 
     public CommentProjection(IEventStore eventStore, CommentRepository commentRepository)
     {
@@ -71,21 +73,24 @@ public class CommentProjection
     /// <summary>
     /// Applies a single domain event to update the comment projection.
     /// </summary>
-    private async Task ApplyEventAsync(DomainEvent @event)
+    public async Task<bool> ApplyEventAsync(DomainEvent @event)
     {
         switch (@event)
         {
             case CommentAdded commentAdded:
                 await HandleCommentAddedAsync(commentAdded);
-                break;
+                return true;
                 
             case CommentEdited commentEdited:
                 await HandleCommentEditedAsync(commentEdited);
-                break;
+                return true;
                 
             case CommentDeleted commentDeleted:
                 await HandleCommentDeletedAsync(commentDeleted);
-                break;
+                return true;
+                
+            default:
+                return false;
         }
     }
 
