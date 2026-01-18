@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
 
@@ -8,14 +9,19 @@ public class JsonFileEventStore : IEventStore
 {
     private readonly string _eventStorePath;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly ILogger<JsonFileEventStore>? _logger;
 
-    public JsonFileEventStore()
+    public JsonFileEventStore(ILogger<JsonFileEventStore>? logger = null)
     {
         _eventStorePath = PlaneCrazyPaths.EventsPath;
+        _logger = logger;
     }
 
     public async Task AppendAsync(DomainEvent domainEvent)
     {
+        _logger?.LogDebug("Appending event {EventType} with ID {EventId}", 
+            domainEvent.EventType, domainEvent.Id);
+        
         await _semaphore.WaitAsync();
         try
         {
@@ -36,6 +42,15 @@ public class JsonFileEventStore : IEventStore
 
             var json = JsonSerializer.Serialize(eventWrapper, options);
             await File.WriteAllTextAsync(filePath, json);
+            
+            _logger?.LogInformation("Event {EventType} ({EventId}) appended successfully", 
+                domainEvent.EventType, domainEvent.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to append event {EventType} ({EventId})", 
+                domainEvent.EventType, domainEvent.Id);
+            throw;
         }
         finally
         {
@@ -45,6 +60,8 @@ public class JsonFileEventStore : IEventStore
 
     public async Task<IEnumerable<DomainEvent>> GetAllAsync()
     {
+        _logger?.LogDebug("Retrieving all events from event store");
+        
         var events = new List<DomainEvent>();
         var files = Directory.GetFiles(_eventStorePath, "*.json").OrderBy(f => f);
 
@@ -69,12 +86,14 @@ public class JsonFileEventStore : IEventStore
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger?.LogError(ex, "Failed to read event from file {FilePath}", file);
                 // Skip corrupted files
             }
         }
 
+        _logger?.LogDebug("Retrieved {EventCount} events from event store", events.Count);
         return events;
     }
 
@@ -95,6 +114,9 @@ public class JsonFileEventStore : IEventStore
         DateTime? fromTimestamp = null,
         DateTime? toTimestamp = null)
     {
+        _logger?.LogDebug("Reading events with filters - EventType: {EventType}, From: {From}, To: {To}", 
+            eventType ?? "any", fromTimestamp, toTimestamp);
+        
         var allEvents = await GetAllAsync();
         var filteredEvents = allEvents.AsEnumerable();
 
@@ -115,8 +137,11 @@ public class JsonFileEventStore : IEventStore
 
         // Note: streamId filtering is not currently supported as DomainEvent doesn't have a StreamId property
         // This parameter is reserved for future use when stream support is added
+        
+        var resultList = filteredEvents.ToList();
+        _logger?.LogDebug("Filtered to {EventCount} events", resultList.Count);
 
-        return filteredEvents;
+        return resultList;
     }
 
     public async Task<IEnumerable<DomainEvent>> ReadAllEventsAsync()

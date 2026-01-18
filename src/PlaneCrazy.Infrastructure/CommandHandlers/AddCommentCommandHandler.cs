@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Interfaces;
@@ -13,11 +14,16 @@ public class AddCommentCommandHandler : ICommandHandler<AddCommentCommand>
 {
     private readonly IEventStore _eventStore;
     private readonly CommentProjection _commentProjection;
+    private readonly ILogger<AddCommentCommandHandler>? _logger;
 
-    public AddCommentCommandHandler(IEventStore eventStore, CommentProjection commentProjection)
+    public AddCommentCommandHandler(
+        IEventStore eventStore, 
+        CommentProjection commentProjection,
+        ILogger<AddCommentCommandHandler>? logger = null)
     {
         _eventStore = eventStore;
         _commentProjection = commentProjection;
+        _logger = logger;
     }
 
     /// <summary>
@@ -30,28 +36,54 @@ public class AddCommentCommandHandler : ICommandHandler<AddCommentCommand>
     /// </summary>
     public async Task HandleAsync(AddCommentCommand command)
     {
-        // Step 1: Validate the command
-        command.Validate();
-
-        // Step 2: Create a new comment aggregate with a new ID
-        var commentId = Guid.NewGuid();
-        var aggregate = new CommentAggregate(commentId);
-
-        // Step 3: Execute the command on the aggregate
-        // This validates business rules and generates domain events
-        aggregate.AddComment(command);
-
-        // Step 4: Persist all uncommitted events to the event store
-        var events = aggregate.GetUncommittedEvents();
-        foreach (var @event in events)
+        _logger?.LogInformation("Handling AddComment command for {EntityType}:{EntityId}", 
+            command.EntityType, command.EntityId);
+        
+        try
         {
-            await _eventStore.AppendEventAsync(@event);
+            // Step 1: Validate the command
+            command.Validate();
+            _logger?.LogDebug("Command validation passed");
+
+            // Step 2: Create a new comment aggregate with a new ID
+            var commentId = Guid.NewGuid();
+            var aggregate = new CommentAggregate(commentId);
+
+            // Step 3: Execute the command on the aggregate
+            // This validates business rules and generates domain events
+            aggregate.AddComment(command);
+
+            // Step 4: Persist all uncommitted events to the event store
+            var events = aggregate.GetUncommittedEvents();
+            _logger?.LogDebug("Generated {EventCount} events", events.Count());
+            
+            foreach (var @event in events)
+            {
+                await _eventStore.AppendEventAsync(@event);
+                _logger?.LogDebug("Persisted event {EventType}", @event.EventType);
+            }
+
+            // Mark events as committed
+            aggregate.MarkEventsAsCommitted();
+
+            // Step 5: Update the comment projection (read model)
+            _logger?.LogDebug("Updating CommentProjection for {EntityType}:{EntityId}", 
+                command.EntityType, command.EntityId);
+            await _commentProjection.RebuildForEntityAsync(command.EntityType, command.EntityId);
+            
+            _logger?.LogInformation("Successfully handled AddComment command, comment ID: {CommentId}", 
+                commentId);
         }
-
-        // Mark events as committed
-        aggregate.MarkEventsAsCommitted();
-
-        // Step 5: Update the comment projection (read model)
-        await _commentProjection.RebuildForEntityAsync(command.EntityType, command.EntityId);
+        catch (ArgumentException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for AddComment command");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error handling AddComment command for {EntityType}:{EntityId}", 
+                command.EntityType, command.EntityId);
+            throw;
+        }
     }
 }

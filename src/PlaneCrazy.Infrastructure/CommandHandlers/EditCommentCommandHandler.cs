@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Events;
@@ -14,11 +15,16 @@ public class EditCommentCommandHandler : ICommandHandler<EditCommentCommand>
 {
     private readonly IEventStore _eventStore;
     private readonly CommentProjection _commentProjection;
+    private readonly ILogger<EditCommentCommandHandler>? _logger;
 
-    public EditCommentCommandHandler(IEventStore eventStore, CommentProjection commentProjection)
+    public EditCommentCommandHandler(
+        IEventStore eventStore, 
+        CommentProjection commentProjection,
+        ILogger<EditCommentCommandHandler>? logger = null)
     {
         _eventStore = eventStore;
         _commentProjection = commentProjection;
+        _logger = logger;
     }
 
     /// <summary>
@@ -32,37 +38,63 @@ public class EditCommentCommandHandler : ICommandHandler<EditCommentCommand>
     /// </summary>
     public async Task HandleAsync(EditCommentCommand command)
     {
-        // Step 1: Validate the command
-        command.Validate();
-
-        // Step 2: Load all events for this comment from the event store
-        // Filter events by comment ID
-        var allEvents = await _eventStore.ReadAllEventsAsync();
-        var commentEvents = allEvents
-            .Where(e => IsCommentEvent(e, command.CommentId))
-            .OrderBy(e => e.OccurredAt)
-            .ToList();
-
-        // Step 3: Rebuild the aggregate state from the event stream
-        var aggregate = new CommentAggregate(command.CommentId);
-        aggregate.LoadFromHistory(commentEvents);
-
-        // Step 4: Execute the command on the aggregate
-        // This validates business rules and generates new domain events
-        aggregate.EditComment(command);
-
-        // Step 5: Persist all uncommitted events to the event store
-        var events = aggregate.GetUncommittedEvents();
-        foreach (var @event in events)
+        _logger?.LogInformation("Handling EditComment command for comment {CommentId}", 
+            command.CommentId);
+        
+        try
         {
-            await _eventStore.AppendEventAsync(@event);
+            // Step 1: Validate the command
+            command.Validate();
+            _logger?.LogDebug("Command validation passed");
+
+            // Step 2: Load all events for this comment from the event store
+            // Filter events by comment ID
+            var allEvents = await _eventStore.ReadAllEventsAsync();
+            var commentEvents = allEvents
+                .Where(e => IsCommentEvent(e, command.CommentId))
+                .OrderBy(e => e.OccurredAt)
+                .ToList();
+
+            // Step 3: Rebuild the aggregate state from the event stream
+            var aggregate = new CommentAggregate(command.CommentId);
+            aggregate.LoadFromHistory(commentEvents);
+
+            // Step 4: Execute the command on the aggregate
+            // This validates business rules and generates new domain events
+            aggregate.EditComment(command);
+
+            // Step 5: Persist all uncommitted events to the event store
+            var events = aggregate.GetUncommittedEvents();
+            _logger?.LogDebug("Generated {EventCount} events", events.Count());
+            
+            foreach (var @event in events)
+            {
+                await _eventStore.AppendEventAsync(@event);
+                _logger?.LogDebug("Persisted event {EventType}", @event.EventType);
+            }
+
+            // Mark events as committed
+            aggregate.MarkEventsAsCommitted();
+
+            // Step 6: Update the comment projection (read model)
+            _logger?.LogDebug("Updating CommentProjection for {EntityType}:{EntityId}", 
+                command.EntityType, command.EntityId);
+            await _commentProjection.RebuildForEntityAsync(command.EntityType, command.EntityId);
+            
+            _logger?.LogInformation("Successfully handled EditComment command for comment {CommentId}", 
+                command.CommentId);
         }
-
-        // Mark events as committed
-        aggregate.MarkEventsAsCommitted();
-
-        // Step 6: Update the comment projection (read model)
-        await _commentProjection.RebuildForEntityAsync(command.EntityType, command.EntityId);
+        catch (ArgumentException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for EditComment command");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error handling EditComment command for comment {CommentId}", 
+                command.CommentId);
+            throw;
+        }
     }
 
     /// <summary>
