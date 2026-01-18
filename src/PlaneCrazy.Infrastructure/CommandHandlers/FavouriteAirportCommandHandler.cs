@@ -3,6 +3,7 @@ using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Domain.Validation;
 using PlaneCrazy.Infrastructure.Projections;
 
 namespace PlaneCrazy.Infrastructure.CommandHandlers;
@@ -85,9 +86,15 @@ public class FavouriteAirportCommandHandler : ICommandHandler<FavouriteAirportCo
             _logger?.LogInformation("Successfully handled FavouriteAirport command for {IcaoCode}", 
                 command.IcaoCode);
         }
+        catch (ValidationException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
+                string.Join(", ", ex.ValidationErrors));
+            throw;
+        }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for FavouriteAirport command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)

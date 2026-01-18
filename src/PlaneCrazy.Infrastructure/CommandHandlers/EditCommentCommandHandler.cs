@@ -3,6 +3,7 @@ using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Domain.Validation;
 using PlaneCrazy.Infrastructure.Projections;
 
 namespace PlaneCrazy.Infrastructure.CommandHandlers;
@@ -84,9 +85,15 @@ public class EditCommentCommandHandler : ICommandHandler<EditCommentCommand>
             _logger?.LogInformation("Successfully handled EditComment command for comment {CommentId}", 
                 command.CommentId);
         }
+        catch (ValidationException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
+                string.Join(", ", ex.ValidationErrors));
+            throw;
+        }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for EditComment command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)

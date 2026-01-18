@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -22,11 +24,8 @@ public class FavouriteAircraftTypeCommand : Command
     
     public override void Validate()
     {
-        if (string.IsNullOrWhiteSpace(TypeCode))
-            throw new ArgumentException("TypeCode cannot be empty.", nameof(TypeCode));
-        
-        // Type codes are typically 2-10 characters
-        if (TypeCode.Length < 2 || TypeCode.Length > 10)
-            throw new ArgumentException("TypeCode must be between 2 and 10 characters.", nameof(TypeCode));
+        var result = CommandValidator.ValidateFavouriteAircraftType(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }

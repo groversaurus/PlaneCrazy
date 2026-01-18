@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -32,13 +34,8 @@ public class DeleteCommentCommand : Command
     
     public override void Validate()
     {
-        if (CommentId == Guid.Empty)
-            throw new ArgumentException("CommentId cannot be empty.", nameof(CommentId));
-        
-        if (string.IsNullOrWhiteSpace(EntityType))
-            throw new ArgumentException("EntityType cannot be empty.", nameof(EntityType));
-        
-        if (string.IsNullOrWhiteSpace(EntityId))
-            throw new ArgumentException("EntityId cannot be empty.", nameof(EntityId));
+        var result = CommandValidator.ValidateDeleteComment(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }

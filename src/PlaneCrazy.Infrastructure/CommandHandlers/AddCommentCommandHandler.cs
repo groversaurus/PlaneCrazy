@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Aggregates;
 using PlaneCrazy.Domain.Commands;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Domain.Validation;
 using PlaneCrazy.Infrastructure.Projections;
 
 namespace PlaneCrazy.Infrastructure.CommandHandlers;
@@ -74,9 +75,15 @@ public class AddCommentCommandHandler : ICommandHandler<AddCommentCommand>
             _logger?.LogInformation("Successfully handled AddComment command, comment ID: {CommentId}", 
                 commentId);
         }
+        catch (ValidationException ex)
+        {
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
+                string.Join(", ", ex.ValidationErrors));
+            throw;
+        }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for AddComment command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)

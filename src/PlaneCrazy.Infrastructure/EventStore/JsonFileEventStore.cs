@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Domain.Validation;
 
 namespace PlaneCrazy.Infrastructure.EventStore;
 
@@ -21,6 +22,15 @@ public class JsonFileEventStore : IEventStore
     {
         _logger?.LogDebug("Appending event {EventType} with ID {EventId}", 
             domainEvent.EventType, domainEvent.Id);
+        
+        // Validate event before persistence
+        var validationResult = EventValidator.Validate(domainEvent);
+        if (!validationResult.IsValid)
+        {
+            _logger?.LogWarning("Event validation failed for {EventType}: {Errors}", 
+                domainEvent.EventType, validationResult.ErrorMessage);
+            throw new ValidationException($"Invalid event: {validationResult.ErrorMessage}");
+        }
         
         await _semaphore.WaitAsync();
         try

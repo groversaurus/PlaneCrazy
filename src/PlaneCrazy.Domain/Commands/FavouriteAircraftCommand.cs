@@ -1,3 +1,5 @@
+using PlaneCrazy.Domain.Validation;
+
 namespace PlaneCrazy.Domain.Commands;
 
 /// <summary>
@@ -27,14 +29,8 @@ public class FavouriteAircraftCommand : Command
     
     public override void Validate()
     {
-        if (string.IsNullOrWhiteSpace(Icao24))
-            throw new ArgumentException("Icao24 cannot be empty.", nameof(Icao24));
-        
-        // ICAO24 should be 6 hex characters
-        if (Icao24.Length != 6)
-            throw new ArgumentException("Icao24 must be 6 characters.", nameof(Icao24));
-        
-        if (!System.Text.RegularExpressions.Regex.IsMatch(Icao24, "^[A-Fa-f0-9]{6}$"))
-            throw new ArgumentException("Icao24 must be valid hex characters.", nameof(Icao24));
+        var result = CommandValidator.ValidateFavouriteAircraft(this);
+        if (!result.IsValid)
+            throw new ValidationException(result);
     }
 }
