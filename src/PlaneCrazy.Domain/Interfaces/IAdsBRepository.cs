@@ -36,6 +36,8 @@ public interface IAdsBRepository
 
     /// <summary>
     /// Fetches military aircraft.
+    /// Military aircraft are typically identified by ICAO24 hex ranges allocated to military operators,
+    /// specific registration patterns, or ADS-B category codes indicating military aircraft types.
     /// </summary>
     /// <returns>A collection of military aircraft.</returns>
     Task<IEnumerable<Aircraft>> GetMilitaryAircraftAsync();
