@@ -130,6 +130,10 @@ public class JsonFileEventStore : IEventStore
         {
             nameof(AircraftFavourited) => data.Deserialize<AircraftFavourited>(options),
             nameof(AircraftUnfavourited) => data.Deserialize<AircraftUnfavourited>(options),
+            nameof(AircraftFirstSeen) => data.Deserialize<AircraftFirstSeen>(options),
+            nameof(AircraftPositionUpdated) => data.Deserialize<AircraftPositionUpdated>(options),
+            nameof(AircraftIdentityUpdated) => data.Deserialize<AircraftIdentityUpdated>(options),
+            nameof(AircraftLastSeen) => data.Deserialize<AircraftLastSeen>(options),
             nameof(TypeFavourited) => data.Deserialize<TypeFavourited>(options),
             nameof(TypeUnfavourited) => data.Deserialize<TypeUnfavourited>(options),
             nameof(AirportFavourited) => data.Deserialize<AirportFavourited>(options),
