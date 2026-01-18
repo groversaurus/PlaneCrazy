@@ -449,7 +449,8 @@ class Program
         {
             EntityType = entityType,
             EntityId = entityId,
-            CommentText = commentText
+            Text = commentText,
+            User = "DefaultUser" // TODO: Get from actual user context
         };
 
         await _eventStore.AppendAsync(@event);
@@ -496,9 +497,9 @@ class Program
                     break;
                 case CommentAdded ca:
                     System.Console.WriteLine($"  Entity: {ca.EntityType}/{ca.EntityId}");
-                    var commentPreview = ca.CommentText.Length > 50 
-                        ? ca.CommentText.Substring(0, 50) + "..." 
-                        : ca.CommentText;
+                    var commentPreview = ca.Text.Length > 50 
+                        ? ca.Text.Substring(0, 50) + "..." 
+                        : ca.Text;
                     System.Console.WriteLine($"  Comment: {commentPreview}");
                     break;
             }
