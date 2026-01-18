@@ -88,7 +88,6 @@ public class CommentProjection : IProjection
             case CommentDeleted commentDeleted:
                 await HandleCommentDeletedAsync(commentDeleted);
                 return true;
-                
             default:
                 return false;
         }

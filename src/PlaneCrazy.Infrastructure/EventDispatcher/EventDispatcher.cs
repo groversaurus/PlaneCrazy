@@ -140,7 +140,7 @@ public class EventDispatcher : IEventDispatcher
             results.Add(result);
 
             // Stop if critical error (event store write failed)
-            if (!result.Success && result.Exception != null && string.IsNullOrEmpty(result.Error) == false)
+            if (!result.Success && result.Exception != null && !string.IsNullOrEmpty(result.Error))
             {
                 _logger?.LogError("Batch dispatch stopped due to critical error at event {EventId}", @event.Id);
                 break;

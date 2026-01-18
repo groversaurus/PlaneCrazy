@@ -82,7 +82,6 @@ public class FavouriteProjection : IProjection
             case AirportUnfavourited airportUnfavourited:
                 await _favouriteRepository.DeleteAsync($"Airport_{airportUnfavourited.IcaoCode}");
                 return true;
-                
             default:
                 return false;
         }

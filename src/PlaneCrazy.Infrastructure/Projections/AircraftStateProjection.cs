@@ -89,7 +89,6 @@ public class AircraftStateProjection : IProjection
             case AircraftLastSeen lastSeen:
                 await HandleLastSeenAsync(lastSeen);
                 return true;
-                
             default:
                 return false;
         }
