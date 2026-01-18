@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using PlaneCrazy.Domain.Entities;
 using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure.Models.AdsbFi;
@@ -7,12 +6,12 @@ namespace PlaneCrazy.Infrastructure.Services;
 
 public class AdsbFiAircraftService : IAircraftDataService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IApiClient _apiClient;
     private const string BaseUrl = "https://api.adsb.fi/v2";
 
-    public AdsbFiAircraftService(HttpClient httpClient)
+    public AdsbFiAircraftService(IApiClient apiClient)
     {
-        _httpClient = httpClient;
+        _apiClient = apiClient;
     }
 
     public async Task<IEnumerable<Aircraft>> FetchAircraftAsync()
@@ -26,7 +25,7 @@ public class AdsbFiAircraftService : IAircraftDataService
             var lon2 = 40.0;
 
             var url = $"{BaseUrl}/lat/{lat1}/lon/{lon1}/lat/{lat2}/lon/{lon2}";
-            var response = await _httpClient.GetFromJsonAsync<AdsbFiSnapshot>(url);
+            var response = await _apiClient.GetAsync<AdsbFiSnapshot>(url);
 
             if (response?.Aircraft == null)
             {

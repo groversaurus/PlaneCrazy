@@ -2,6 +2,7 @@ using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure;
 using PlaneCrazy.Infrastructure.EventStore;
+using PlaneCrazy.Infrastructure.Http;
 using PlaneCrazy.Infrastructure.Projections;
 using PlaneCrazy.Infrastructure.Repositories;
 using PlaneCrazy.Infrastructure.Services;
@@ -79,7 +80,8 @@ class Program
         _commentRepo = new CommentRepository();
         
         var httpClient = new HttpClient();
-        _aircraftService = new AdsbFiAircraftService(httpClient);
+        IApiClient apiClient = new ApiClient(httpClient);
+        _aircraftService = new AdsbFiAircraftService(apiClient);
 
         _favouriteProjection = new FavouriteProjection(_eventStore, _favouriteRepo);
         _commentProjection = new CommentProjection(_eventStore, _commentRepo);
