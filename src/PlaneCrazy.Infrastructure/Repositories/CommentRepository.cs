@@ -4,8 +4,8 @@ namespace PlaneCrazy.Infrastructure.Repositories;
 
 public class CommentRepository : JsonFileRepository<Comment>
 {
-    public CommentRepository(string basePath) 
-        : base(basePath, "comments.json")
+    public CommentRepository() 
+        : base("comments.json")
     {
     }
 

@@ -1,5 +1,6 @@
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Infrastructure;
 using PlaneCrazy.Infrastructure.EventStore;
 using PlaneCrazy.Infrastructure.Projections;
 using PlaneCrazy.Infrastructure.Repositories;
@@ -9,7 +10,6 @@ namespace PlaneCrazy.Console;
 
 class Program
 {
-    private static string _basePath = string.Empty;
     private static IEventStore _eventStore = null!;
     private static AircraftRepository _aircraftRepo = null!;
     private static FavouriteRepository _favouriteRepo = null!;
@@ -70,17 +70,13 @@ class Program
 
     private static void InitializeApp()
     {
-        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        _basePath = Path.Combine(documentsPath, "PlaneCrazy");
-        Directory.CreateDirectory(_basePath);
-
-        System.Console.WriteLine($"Data directory: {_basePath}");
+        System.Console.WriteLine($"Data directory: {PlaneCrazyPaths.BasePath}");
         System.Console.WriteLine();
 
-        _eventStore = new JsonFileEventStore(_basePath);
-        _aircraftRepo = new AircraftRepository(_basePath);
-        _favouriteRepo = new FavouriteRepository(_basePath);
-        _commentRepo = new CommentRepository(_basePath);
+        _eventStore = new JsonFileEventStore();
+        _aircraftRepo = new AircraftRepository();
+        _favouriteRepo = new FavouriteRepository();
+        _commentRepo = new CommentRepository();
         
         var httpClient = new HttpClient();
         _aircraftService = new AdsbFiAircraftService(httpClient);

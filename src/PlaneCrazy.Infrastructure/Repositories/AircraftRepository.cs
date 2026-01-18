@@ -4,8 +4,8 @@ namespace PlaneCrazy.Infrastructure.Repositories;
 
 public class AircraftRepository : JsonFileRepository<Aircraft>
 {
-    public AircraftRepository(string basePath) 
-        : base(basePath, "aircraft.json")
+    public AircraftRepository() 
+        : base("aircraft.json")
     {
     }
 

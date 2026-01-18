@@ -4,8 +4,8 @@ namespace PlaneCrazy.Infrastructure.Repositories;
 
 public class FavouriteRepository : JsonFileRepository<Favourite>
 {
-    public FavouriteRepository(string basePath) 
-        : base(basePath, "favourites.json")
+    public FavouriteRepository() 
+        : base("favourites.json")
     {
     }
 

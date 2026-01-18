@@ -9,11 +9,9 @@ public abstract class JsonFileRepository<T> : IRepository<T> where T : class
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions;
 
-    protected JsonFileRepository(string basePath, string fileName)
+    protected JsonFileRepository(string fileName)
     {
-        var repositoryPath = Path.Combine(basePath, "Repositories");
-        Directory.CreateDirectory(repositoryPath);
-        _filePath = Path.Combine(repositoryPath, fileName);
+        _filePath = Path.Combine(PlaneCrazyPaths.DataPath, fileName);
         
         _jsonOptions = new JsonSerializerOptions
         {
