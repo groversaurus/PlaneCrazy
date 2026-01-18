@@ -30,9 +30,18 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FavouriteRepository>();
         services.AddSingleton<CommentRepository>();
 
-        // Register Projections as Singleton (stateless projection logic)
+        // Register Projections as Singleton (must be done before EventDispatcher)
+        services.AddSingleton<IProjection, FavouriteProjection>();
+        services.AddSingleton<IProjection, CommentProjection>();
+        services.AddSingleton<IProjection, AircraftStateProjection>();
+        
+        // Register Projections with their concrete types for backward compatibility
         services.AddSingleton<FavouriteProjection>();
         services.AddSingleton<CommentProjection>();
+        services.AddSingleton<AircraftStateProjection>();
+        
+        // Register EventDispatcher (will automatically get all IProjection implementations)
+        services.AddSingleton<IEventDispatcher, Infrastructure.EventDispatcher.EventDispatcher>();
 
         // Register HTTP Client and related services
         services.AddHttpClient<IApiClient, ApiClient>();

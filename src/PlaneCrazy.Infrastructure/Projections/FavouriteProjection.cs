@@ -4,10 +4,12 @@ using PlaneCrazy.Infrastructure.Repositories;
 
 namespace PlaneCrazy.Infrastructure.Projections;
 
-public class FavouriteProjection
+public class FavouriteProjection : IProjection
 {
     private readonly IEventStore _eventStore;
     private readonly FavouriteRepository _favouriteRepository;
+
+    public string ProjectionName => "FavouriteProjection";
 
     public FavouriteProjection(IEventStore eventStore, FavouriteRepository favouriteRepository)
     {
@@ -25,7 +27,7 @@ public class FavouriteProjection
         }
     }
 
-    private async Task ApplyEventAsync(DomainEvent @event)
+    public async Task<bool> ApplyEventAsync(DomainEvent @event)
     {
         switch (@event)
         {
@@ -41,11 +43,11 @@ public class FavouriteProjection
                         ["TypeCode"] = aircraftFavourited.TypeCode ?? ""
                     }
                 });
-                break;
+                return true;
 
             case AircraftUnfavourited aircraftUnfavourited:
                 await _favouriteRepository.DeleteAsync($"Aircraft_{aircraftUnfavourited.Icao24}");
-                break;
+                return true;
 
             case TypeFavourited typeFavourited:
                 await _favouriteRepository.SaveAsync(new Domain.Entities.Favourite
@@ -58,11 +60,11 @@ public class FavouriteProjection
                         ["TypeName"] = typeFavourited.TypeName ?? ""
                     }
                 });
-                break;
+                return true;
 
             case TypeUnfavourited typeUnfavourited:
                 await _favouriteRepository.DeleteAsync($"Type_{typeUnfavourited.TypeCode}");
-                break;
+                return true;
 
             case AirportFavourited airportFavourited:
                 await _favouriteRepository.SaveAsync(new Domain.Entities.Favourite
@@ -75,11 +77,13 @@ public class FavouriteProjection
                         ["Name"] = airportFavourited.Name ?? ""
                     }
                 });
-                break;
+                return true;
 
             case AirportUnfavourited airportUnfavourited:
                 await _favouriteRepository.DeleteAsync($"Airport_{airportUnfavourited.IcaoCode}");
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 }

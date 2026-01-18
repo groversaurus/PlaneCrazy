@@ -9,10 +9,12 @@ namespace PlaneCrazy.Infrastructure.Projections;
 /// Projection that rebuilds aircraft state from domain events.
 /// Replays all aircraft-related events to reconstruct current state.
 /// </summary>
-public class AircraftStateProjection
+public class AircraftStateProjection : IProjection
 {
     private readonly IEventStore _eventStore;
     private readonly AircraftRepository _aircraftRepository;
+
+    public string ProjectionName => "AircraftStateProjection";
 
     public AircraftStateProjection(IEventStore eventStore, AircraftRepository aircraftRepository)
     {
@@ -68,25 +70,27 @@ public class AircraftStateProjection
     /// <summary>
     /// Applies a single event to update the aircraft state.
     /// </summary>
-    private async Task ApplyEventAsync(DomainEvent @event)
+    public async Task<bool> ApplyEventAsync(DomainEvent @event)
     {
         switch (@event)
         {
             case AircraftFirstSeen firstSeen:
                 await HandleAircraftFirstSeenAsync(firstSeen);
-                break;
+                return true;
                 
             case AircraftPositionUpdated positionUpdated:
                 await HandlePositionUpdatedAsync(positionUpdated);
-                break;
+                return true;
                 
             case AircraftIdentityUpdated identityUpdated:
                 await HandleIdentityUpdatedAsync(identityUpdated);
-                break;
+                return true;
                 
             case AircraftLastSeen lastSeen:
                 await HandleLastSeenAsync(lastSeen);
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 
