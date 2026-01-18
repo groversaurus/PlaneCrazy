@@ -24,9 +24,15 @@ public class ApiClient : IApiClient
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response to.</typeparam>
     /// <param name="url">The URL to send the GET request to.</param>
-    /// <returns>The deserialized response object, or null if the request fails.</returns>
+    /// <returns>The deserialized response object, or null if the request fails or deserialization fails.</returns>
+    /// <exception cref="ArgumentException">Thrown when the URL is null or empty.</exception>
     public async Task<T?> GetAsync<T>(string url)
     {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new ArgumentException("URL cannot be null or empty.", nameof(url));
+        }
+
         return await _httpClient.GetFromJsonAsync<T>(url);
     }
 }
