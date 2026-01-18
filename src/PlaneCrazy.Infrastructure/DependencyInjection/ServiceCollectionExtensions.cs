@@ -5,6 +5,7 @@ using PlaneCrazy.Infrastructure.CommandHandlers;
 using PlaneCrazy.Infrastructure.EventStore;
 using PlaneCrazy.Infrastructure.Http;
 using PlaneCrazy.Infrastructure.Projections;
+using PlaneCrazy.Infrastructure.QueryServices;
 using PlaneCrazy.Infrastructure.Repositories;
 using PlaneCrazy.Infrastructure.Services;
 
@@ -29,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AircraftRepository>();
         services.AddSingleton<FavouriteRepository>();
         services.AddSingleton<CommentRepository>();
+        services.AddSingleton<AirportRepository>();
 
         // Register Projections as Singleton (must be done before EventDispatcher)
         services.AddSingleton<IProjection, FavouriteProjection>();
@@ -59,6 +61,11 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ICommandHandler<UnfavouriteAircraftTypeCommand>, UnfavouriteAircraftTypeCommandHandler>();
         services.AddTransient<ICommandHandler<FavouriteAirportCommand>, FavouriteAirportCommandHandler>();
         services.AddTransient<ICommandHandler<UnfavouriteAirportCommand>, UnfavouriteAirportCommandHandler>();
+
+        // Register Query Services as Singleton (read-only services using projections)
+        services.AddSingleton<IAircraftQueryService, AircraftQueryService>();
+        services.AddSingleton<ICommentQueryService, CommentQueryService>();
+        services.AddSingleton<IFavouriteQueryService, FavouriteQueryService>();
 
         return services;
     }
