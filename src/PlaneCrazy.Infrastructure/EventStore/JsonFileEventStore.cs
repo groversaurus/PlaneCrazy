@@ -31,7 +31,7 @@ public class JsonFileEventStore : IEventStore
             var eventWrapper = new EventWrapper
             {
                 EventType = domainEvent.EventType,
-                Data = JsonSerializer.SerializeToElement(domainEvent, options)
+                Data = JsonSerializer.SerializeToElement(domainEvent, domainEvent.GetType(), options)
             };
 
             var json = JsonSerializer.Serialize(eventWrapper, options);
