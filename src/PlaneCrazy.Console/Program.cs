@@ -1,16 +1,16 @@
+using Microsoft.Extensions.DependencyInjection;
 using PlaneCrazy.Domain.Events;
 using PlaneCrazy.Domain.Interfaces;
 using PlaneCrazy.Infrastructure;
-using PlaneCrazy.Infrastructure.EventStore;
-using PlaneCrazy.Infrastructure.Http;
+using PlaneCrazy.Infrastructure.DependencyInjection;
 using PlaneCrazy.Infrastructure.Projections;
 using PlaneCrazy.Infrastructure.Repositories;
-using PlaneCrazy.Infrastructure.Services;
 
 namespace PlaneCrazy.Console;
 
 class Program
 {
+    private static IServiceProvider _serviceProvider = null!;
     private static IEventStore _eventStore = null!;
     private static AircraftRepository _aircraftRepo = null!;
     private static FavouriteRepository _favouriteRepo = null!;
@@ -21,6 +21,7 @@ class Program
 
     static async Task Main(string[] args)
     {
+        ConfigureServices();
         InitializeApp();
         await RebuildProjectionsAsync();
 
@@ -69,22 +70,29 @@ class Program
         System.Console.WriteLine("\nThank you for using PlaneCrazy!");
     }
 
+    private static void ConfigureServices()
+    {
+        var services = new ServiceCollection();
+        
+        // Add all infrastructure services (repositories, event store, projections, HTTP services)
+        services.AddPlaneCrazyInfrastructure();
+
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
     private static void InitializeApp()
     {
         System.Console.WriteLine($"Data directory: {PlaneCrazyPaths.BasePath}");
         System.Console.WriteLine();
 
-        _eventStore = new JsonFileEventStore();
-        _aircraftRepo = new AircraftRepository();
-        _favouriteRepo = new FavouriteRepository();
-        _commentRepo = new CommentRepository();
-        
-        var httpClient = new HttpClient();
-        IApiClient apiClient = new ApiClient(httpClient);
-        _aircraftService = new AdsbFiAircraftService(apiClient);
-
-        _favouriteProjection = new FavouriteProjection(_eventStore, _favouriteRepo);
-        _commentProjection = new CommentProjection(_eventStore, _commentRepo);
+        // Resolve singleton services from DI container
+        _eventStore = _serviceProvider.GetRequiredService<IEventStore>();
+        _aircraftRepo = _serviceProvider.GetRequiredService<AircraftRepository>();
+        _favouriteRepo = _serviceProvider.GetRequiredService<FavouriteRepository>();
+        _commentRepo = _serviceProvider.GetRequiredService<CommentRepository>();
+        _aircraftService = _serviceProvider.GetRequiredService<IAircraftDataService>();
+        _favouriteProjection = _serviceProvider.GetRequiredService<FavouriteProjection>();
+        _commentProjection = _serviceProvider.GetRequiredService<CommentProjection>();
     }
 
     private static async Task RebuildProjectionsAsync()
