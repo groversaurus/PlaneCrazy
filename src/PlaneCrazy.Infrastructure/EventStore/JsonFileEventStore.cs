@@ -84,6 +84,46 @@ public class JsonFileEventStore : IEventStore
         return allEvents.Where(e => e.EventType == eventType);
     }
 
+    public async Task AppendEventAsync(DomainEvent domainEvent)
+    {
+        await AppendAsync(domainEvent);
+    }
+
+    public async Task<IEnumerable<DomainEvent>> ReadEventsAsync(
+        string? streamId = null,
+        string? eventType = null,
+        DateTime? fromTimestamp = null,
+        DateTime? toTimestamp = null)
+    {
+        var allEvents = await GetAllAsync();
+        var filteredEvents = allEvents.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(eventType))
+        {
+            filteredEvents = filteredEvents.Where(e => e.EventType == eventType);
+        }
+
+        if (fromTimestamp.HasValue)
+        {
+            filteredEvents = filteredEvents.Where(e => e.OccurredAt >= fromTimestamp.Value);
+        }
+
+        if (toTimestamp.HasValue)
+        {
+            filteredEvents = filteredEvents.Where(e => e.OccurredAt <= toTimestamp.Value);
+        }
+
+        // Note: streamId filtering is not currently supported as DomainEvent doesn't have a StreamId property
+        // This parameter is reserved for future use when stream support is added
+
+        return filteredEvents;
+    }
+
+    public async Task<IEnumerable<DomainEvent>> ReadAllEventsAsync()
+    {
+        return await GetAllAsync();
+    }
+
     private DomainEvent? DeserializeEvent(string eventType, JsonElement data, JsonSerializerOptions options)
     {
         return eventType switch
