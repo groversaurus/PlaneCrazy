@@ -88,7 +88,7 @@ public class FavouriteAircraftTypeCommandHandler : ICommandHandler<FavouriteAirc
         }
         catch (ValidationException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed: {Errors}", 
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
                 string.Join(", ", ex.ValidationErrors));
             throw;
         }

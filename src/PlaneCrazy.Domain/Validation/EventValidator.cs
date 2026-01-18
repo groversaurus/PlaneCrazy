@@ -17,12 +17,12 @@ public static class EventValidator
     /// <summary>
     /// Minimum allowed timestamp for events (year 2000).
     /// </summary>
-    private static readonly DateTime MinTimestamp = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    public static readonly DateTime MinTimestamp = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
     
     /// <summary>
     /// Clock skew buffer in minutes to allow for slightly future timestamps.
     /// </summary>
-    private const int ClockSkewBufferMinutes = 5;
+    public const int ClockSkewBufferMinutes = 5;
     
     /// <summary>
     /// Validates a domain event before persistence.
