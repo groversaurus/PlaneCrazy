@@ -108,9 +108,9 @@ public class BackgroundAdsBPoller : IHostedService, IDisposable
             return;
         }
 
-        // Get all existing aircraft from repository
-        var existingAircraft = (await _aircraftRepository.GetAllAsync()).ToList();
-        var existingIcaos = existingAircraft.Select(a => a.Icao24).ToHashSet();
+        // Get all existing aircraft from repository and create dictionary for O(1) lookups
+        var existingAircraftList = (await _aircraftRepository.GetAllAsync()).ToList();
+        var existingAircraft = existingAircraftList.ToDictionary(a => a.Icao24);
         var fetchedIcaos = aircraftList.Select(a => a.Icao24).ToHashSet();
 
         int newCount = 0;
@@ -119,12 +119,14 @@ public class BackgroundAdsBPoller : IHostedService, IDisposable
         // Process each fetched aircraft
         foreach (var aircraft in aircraftList)
         {
-            if (existingIcaos.Contains(aircraft.Icao24))
+            if (existingAircraft.TryGetValue(aircraft.Icao24, out var existing))
             {
                 // Existing aircraft - check for updates
-                var existing = existingAircraft.First(a => a.Icao24 == aircraft.Icao24);
-                await ProcessExistingAircraftAsync(existing, aircraft);
-                updatedCount++;
+                bool hasChanges = await ProcessExistingAircraftAsync(existing, aircraft);
+                if (hasChanges)
+                {
+                    updatedCount++;
+                }
             }
             else
             {
@@ -135,7 +137,7 @@ public class BackgroundAdsBPoller : IHostedService, IDisposable
         }
 
         // Check for missing aircraft (in repository but not in latest fetch)
-        var missingIcaos = existingIcaos.Except(fetchedIcaos).ToList();
+        var missingIcaos = existingAircraft.Keys.Except(fetchedIcaos).ToList();
         if (missingIcaos.Any())
         {
             await ProcessMissingAircraftAsync(missingIcaos, existingAircraft);
@@ -172,32 +174,38 @@ public class BackgroundAdsBPoller : IHostedService, IDisposable
         }
     }
 
-    private async Task ProcessExistingAircraftAsync(Aircraft existing, Aircraft fetched)
+    private async Task<bool> ProcessExistingAircraftAsync(Aircraft existing, Aircraft fetched)
     {
+        bool hasChanges = false;
+
         // Check for position changes
         if (HasPositionChanged(existing, fetched))
         {
             await EmitPositionUpdateAsync(fetched);
+            hasChanges = true;
         }
 
         // Check for identity changes
         if (HasIdentityChanged(existing, fetched))
         {
             await EmitIdentityUpdateAsync(fetched);
+            hasChanges = true;
         }
 
         // Always update LastSeen timestamp
         existing.LastSeen = DateTime.UtcNow;
         await _aircraftRepository.SaveAsync(existing);
+
+        return hasChanges;
     }
 
-    private async Task ProcessMissingAircraftAsync(List<string> missingIcaos, List<Aircraft> existingAircraft)
+    private async Task ProcessMissingAircraftAsync(List<string> missingIcaos, Dictionary<string, Aircraft> existingAircraft)
     {
         var cutoffTime = DateTime.UtcNow.AddMinutes(-_config.MissingAircraftTimeoutMinutes);
 
         foreach (var icao in missingIcaos)
         {
-            var aircraft = existingAircraft.First(a => a.Icao24 == icao);
+            var aircraft = existingAircraft[icao];
             
             // Only emit LastSeen event if aircraft hasn't been seen for more than the timeout period
             if (aircraft.LastSeen < cutoffTime)
