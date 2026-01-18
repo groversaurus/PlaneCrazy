@@ -250,10 +250,25 @@ await handler.HandleAsync(command);
 
 Potential improvements to the command handler architecture:
 
-1. **Command Bus**: Central dispatcher for routing commands to handlers
-2. **Command Middleware**: Cross-cutting concerns (logging, validation, authorization)
-3. **Optimistic Concurrency**: Version checking to prevent conflicts
-4. **Sagas**: Coordinate long-running business processes across aggregates
-5. **Snapshot Support**: Optimize state reconstruction for large event streams
-6. **Event Versioning**: Handle event schema evolution over time
-7. **Integration Events**: Publish events to external systems
+1. **Stream/Aggregate ID Support**: Add StreamId property to DomainEvent base class to enable efficient event retrieval by aggregate
+2. **Optimized Event Loading**: Implement storage-level filtering in EventStore to avoid loading all events into memory
+3. **Command Handler Base Class**: Extract common event persistence logic into a base class to reduce code duplication
+4. **Command Bus**: Central dispatcher for routing commands to handlers
+5. **Command Middleware**: Cross-cutting concerns (logging, validation, authorization)
+6. **Optimistic Concurrency**: Version checking to prevent conflicts
+7. **Sagas**: Coordinate long-running business processes across aggregates
+8. **Snapshot Support**: Optimize state reconstruction for large event streams
+9. **Event Versioning**: Handle event schema evolution over time
+10. **Integration Events**: Publish events to external systems
+
+## Performance Considerations
+
+The current implementation loads all events from the event store and filters in memory. This is acceptable for:
+- Small to medium event stores (< 10,000 events)
+- Development and testing environments
+- Initial production deployments
+
+For larger deployments, consider implementing storage-level filtering by:
+- Adding StreamId/AggregateId to the DomainEvent base class
+- Implementing indexed event retrieval in the EventStore
+- Using a database-backed event store instead of file-based storage
