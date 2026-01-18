@@ -88,13 +88,13 @@ public class FavouriteAirportCommandHandler : ICommandHandler<FavouriteAirportCo
         }
         catch (ValidationException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for FavouriteAirport command: {Errors}", 
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
                 string.Join(", ", ex.ValidationErrors));
             throw;
         }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for FavouriteAirport command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)

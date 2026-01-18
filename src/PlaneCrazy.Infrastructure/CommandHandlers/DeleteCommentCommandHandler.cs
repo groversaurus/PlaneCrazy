@@ -87,13 +87,13 @@ public class DeleteCommentCommandHandler : ICommandHandler<DeleteCommentCommand>
         }
         catch (ValidationException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for DeleteComment command: {Errors}", 
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
                 string.Join(", ", ex.ValidationErrors));
             throw;
         }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for DeleteComment command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)

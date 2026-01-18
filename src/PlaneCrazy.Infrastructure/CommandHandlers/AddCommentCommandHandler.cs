@@ -77,13 +77,13 @@ public class AddCommentCommandHandler : ICommandHandler<AddCommentCommand>
         }
         catch (ValidationException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for AddComment command: {Errors}", 
+            _logger?.LogWarning(ex, "Validation failed for command: {Errors}", 
                 string.Join(", ", ex.ValidationErrors));
             throw;
         }
         catch (ArgumentException ex)
         {
-            _logger?.LogWarning(ex, "Validation failed for AddComment command");
+            _logger?.LogWarning(ex, "Validation failed for command");
             throw;
         }
         catch (Exception ex)
