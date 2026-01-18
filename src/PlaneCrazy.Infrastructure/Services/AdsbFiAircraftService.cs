@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using PlaneCrazy.Domain.Entities;
 using PlaneCrazy.Domain.Interfaces;
+using PlaneCrazy.Infrastructure.Models.AdsbFi;
 
 namespace PlaneCrazy.Infrastructure.Services;
 
@@ -25,7 +26,7 @@ public class AdsbFiAircraftService : IAircraftDataService
             var lon2 = 40.0;
 
             var url = $"{BaseUrl}/lat/{lat1}/lon/{lon1}/lat/{lat2}/lon/{lon2}";
-            var response = await _httpClient.GetFromJsonAsync<AdsbFiResponse>(url);
+            var response = await _httpClient.GetFromJsonAsync<AdsbFiSnapshot>(url);
 
             if (response?.Aircraft == null)
             {
@@ -64,21 +65,5 @@ public class AdsbFiAircraftService : IAircraftDataService
         };
     }
 
-    private class AdsbFiResponse
-    {
-        public AdsbFiAircraft[]? Aircraft { get; set; }
-    }
 
-    private class AdsbFiAircraft
-    {
-        public string? Hex { get; set; }
-        public string? R { get; set; }
-        public string? T { get; set; }
-        public double? Lat { get; set; }
-        public double? Lon { get; set; }
-        public double? Alt_Baro { get; set; }
-        public double? Gs { get; set; }
-        public double? Track { get; set; }
-        public string? Flight { get; set; }
-    }
 }
