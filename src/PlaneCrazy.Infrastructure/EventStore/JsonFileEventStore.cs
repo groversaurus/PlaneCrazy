@@ -9,10 +9,9 @@ public class JsonFileEventStore : IEventStore
     private readonly string _eventStorePath;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public JsonFileEventStore(string basePath)
+    public JsonFileEventStore()
     {
-        _eventStorePath = Path.Combine(basePath, "EventStore");
-        Directory.CreateDirectory(_eventStorePath);
+        _eventStorePath = PlaneCrazyPaths.EventsPath;
     }
 
     public async Task AppendAsync(DomainEvent domainEvent)
