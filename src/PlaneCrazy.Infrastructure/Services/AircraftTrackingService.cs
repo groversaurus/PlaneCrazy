@@ -118,7 +118,9 @@ public class AircraftTrackingService
             || existing.Longitude != updated.Longitude
             || existing.Altitude != updated.Altitude
             || existing.Velocity != updated.Velocity
-            || existing.Track != updated.Track;
+            || existing.Track != updated.Track
+            || existing.VerticalRate != updated.VerticalRate
+            || existing.OnGround != updated.OnGround;
     }
 
     private bool HasIdentityChanged(Aircraft? existing, Aircraft updated)
@@ -127,6 +129,9 @@ public class AircraftTrackingService
         
         return existing.Registration != updated.Registration
             || existing.TypeCode != updated.TypeCode
-            || existing.Callsign != updated.Callsign;
+            || existing.Callsign != updated.Callsign
+            || existing.Squawk != updated.Squawk
+            || existing.Origin != updated.Origin
+            || existing.Destination != updated.Destination;
     }
 }

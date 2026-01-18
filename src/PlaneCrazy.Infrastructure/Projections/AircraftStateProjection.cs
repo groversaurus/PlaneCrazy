@@ -108,17 +108,7 @@ public class AircraftStateProjection
 
     private async Task HandlePositionUpdatedAsync(AircraftPositionUpdated @event)
     {
-        var aircraft = await _aircraftRepository.GetByIdAsync(@event.Icao24);
-        
-        if (aircraft == null)
-        {
-            // Create new aircraft if it doesn't exist
-            aircraft = new Aircraft
-            {
-                Icao24 = @event.Icao24,
-                FirstSeen = @event.Timestamp
-            };
-        }
+        var aircraft = await GetOrCreateAircraftAsync(@event.Icao24, @event.Timestamp);
         
         // Update position data
         aircraft.Latitude = @event.Latitude;
@@ -137,17 +127,7 @@ public class AircraftStateProjection
 
     private async Task HandleIdentityUpdatedAsync(AircraftIdentityUpdated @event)
     {
-        var aircraft = await _aircraftRepository.GetByIdAsync(@event.Icao24);
-        
-        if (aircraft == null)
-        {
-            // Create new aircraft if it doesn't exist
-            aircraft = new Aircraft
-            {
-                Icao24 = @event.Icao24,
-                FirstSeen = @event.Timestamp
-            };
-        }
+        var aircraft = await GetOrCreateAircraftAsync(@event.Icao24, @event.Timestamp);
         
         // Update identity data
         if (!string.IsNullOrEmpty(@event.Registration))
@@ -216,5 +196,22 @@ public class AircraftStateProjection
             AircraftLastSeen lastSeen => lastSeen.Icao24,
             _ => null
         };
+    }
+
+    private async Task<Aircraft> GetOrCreateAircraftAsync(string icao24, DateTime timestamp)
+    {
+        var aircraft = await _aircraftRepository.GetByIdAsync(icao24);
+        
+        if (aircraft == null)
+        {
+            // Create new aircraft if it doesn't exist
+            aircraft = new Aircraft
+            {
+                Icao24 = icao24,
+                FirstSeen = timestamp
+            };
+        }
+        
+        return aircraft;
     }
 }
