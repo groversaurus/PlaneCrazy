@@ -12,6 +12,7 @@ class Program
 {
     private static IServiceProvider _serviceProvider = null!;
     private static IEventStore _eventStore = null!;
+    private static IEventDispatcher _dispatcher = null!;
     private static AircraftRepository _aircraftRepo = null!;
     private static FavouriteRepository _favouriteRepo = null!;
     private static CommentRepository _commentRepo = null!;
@@ -87,12 +88,22 @@ class Program
 
         // Resolve singleton services from DI container
         _eventStore = _serviceProvider.GetRequiredService<IEventStore>();
+        _dispatcher = _serviceProvider.GetRequiredService<IEventDispatcher>();
         _aircraftRepo = _serviceProvider.GetRequiredService<AircraftRepository>();
         _favouriteRepo = _serviceProvider.GetRequiredService<FavouriteRepository>();
         _commentRepo = _serviceProvider.GetRequiredService<CommentRepository>();
         _aircraftService = _serviceProvider.GetRequiredService<IAircraftDataService>();
         _favouriteProjection = _serviceProvider.GetRequiredService<FavouriteProjection>();
         _commentProjection = _serviceProvider.GetRequiredService<CommentProjection>();
+        
+        // Show projection statistics
+        var stats = _dispatcher.GetProjectionStatistics();
+        System.Console.WriteLine($"Registered projections: {stats.TotalProjections}");
+        foreach (var name in stats.ProjectionNames)
+        {
+            System.Console.WriteLine($"  - {name}");
+        }
+        System.Console.WriteLine();
     }
 
     private static async Task RebuildProjectionsAsync()
@@ -282,10 +293,17 @@ class Program
             TypeCode = aircraft.TypeCode
         };
 
-        await _eventStore.AppendAsync(@event);
-        await _favouriteProjection.RebuildAsync();
-
-        System.Console.WriteLine($"\n✓ Aircraft {aircraft.Icao24} added to favourites!");
+        var result = await _dispatcher.DispatchAsync(@event);
+        
+        if (result.Success)
+        {
+            System.Console.WriteLine($"\n✓ Aircraft {aircraft.Icao24} added to favourites!");
+            System.Console.WriteLine($"  Updated {result.ProjectionsUpdated} projections in {result.TotalTimeMs}ms");
+        }
+        else
+        {
+            System.Console.WriteLine($"\n✗ Failed to favourite aircraft: {result.Error}");
+        }
     }
 
     private static async Task FavouriteTypeAsync()
@@ -308,10 +326,17 @@ class Program
             TypeName = typeName
         };
 
-        await _eventStore.AppendAsync(@event);
-        await _favouriteProjection.RebuildAsync();
-
-        System.Console.WriteLine($"\n✓ Type {typeCode} added to favourites!");
+        var result = await _dispatcher.DispatchAsync(@event);
+        
+        if (result.Success)
+        {
+            System.Console.WriteLine($"\n✓ Type {typeCode} added to favourites!");
+            System.Console.WriteLine($"  Updated {result.ProjectionsUpdated} projections in {result.TotalTimeMs}ms");
+        }
+        else
+        {
+            System.Console.WriteLine($"\n✗ Failed to favourite type: {result.Error}");
+        }
     }
 
     private static async Task FavouriteAirportAsync()
@@ -334,10 +359,17 @@ class Program
             Name = name
         };
 
-        await _eventStore.AppendAsync(@event);
-        await _favouriteProjection.RebuildAsync();
-
-        System.Console.WriteLine($"\n✓ Airport {icaoCode} added to favourites!");
+        var result = await _dispatcher.DispatchAsync(@event);
+        
+        if (result.Success)
+        {
+            System.Console.WriteLine($"\n✓ Airport {icaoCode} added to favourites!");
+            System.Console.WriteLine($"  Updated {result.ProjectionsUpdated} projections in {result.TotalTimeMs}ms");
+        }
+        else
+        {
+            System.Console.WriteLine($"\n✗ Failed to favourite airport: {result.Error}");
+        }
     }
 
     private static async Task UnfavouriteAsync()
@@ -369,9 +401,17 @@ class Program
 
         if (@event != null)
         {
-            await _eventStore.AppendAsync(@event);
-            await _favouriteProjection.RebuildAsync();
-            System.Console.WriteLine($"\n✓ Successfully unfavourited {id}!");
+            var result = await _dispatcher.DispatchAsync(@event);
+            
+            if (result.Success)
+            {
+                System.Console.WriteLine($"\n✓ Successfully unfavourited {id}!");
+                System.Console.WriteLine($"  Updated {result.ProjectionsUpdated} projections in {result.TotalTimeMs}ms");
+            }
+            else
+            {
+                System.Console.WriteLine($"\n✗ Failed to unfavourite: {result.Error}");
+            }
         }
     }
 
@@ -471,10 +511,17 @@ class Program
             User = "DefaultUser" // TODO: Get from actual user context
         };
 
-        await _eventStore.AppendAsync(@event);
-        await _commentProjection.RebuildAsync();
-
-        System.Console.WriteLine("\n✓ Comment added successfully!");
+        var result = await _dispatcher.DispatchAsync(@event);
+        
+        if (result.Success)
+        {
+            System.Console.WriteLine("\n✓ Comment added successfully!");
+            System.Console.WriteLine($"  Updated {result.ProjectionsUpdated} projections in {result.TotalTimeMs}ms");
+        }
+        else
+        {
+            System.Console.WriteLine($"\n✗ Failed to add comment: {result.Error}");
+        }
     }
 
     private static async Task ViewEventsAsync()
