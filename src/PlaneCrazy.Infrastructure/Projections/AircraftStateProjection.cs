@@ -92,6 +92,13 @@ public class AircraftStateProjection
 
     private async Task HandleAircraftFirstSeenAsync(AircraftFirstSeen @event)
     {
+        // Only create aircraft if it doesn't already exist
+        var existing = await _aircraftRepository.GetByIdAsync(@event.Icao24);
+        if (existing != null)
+        {
+            return; // Aircraft already exists, skip
+        }
+        
         var aircraft = new Aircraft
         {
             Icao24 = @event.Icao24,
@@ -157,25 +164,22 @@ public class AircraftStateProjection
 
     private async Task HandleLastSeenAsync(AircraftLastSeen @event)
     {
-        var aircraft = await _aircraftRepository.GetByIdAsync(@event.Icao24);
+        var aircraft = await GetOrCreateAircraftAsync(@event.Icao24, @event.LastSeenAt);
         
-        if (aircraft != null)
-        {
-            aircraft.LastSeen = @event.LastSeenAt;
-            aircraft.LastUpdated = @event.OccurredAt;
-            
-            // Update last known position if provided
-            if (@event.LastLatitude.HasValue)
-                aircraft.Latitude = @event.LastLatitude;
-            
-            if (@event.LastLongitude.HasValue)
-                aircraft.Longitude = @event.LastLongitude;
-            
-            if (@event.LastAltitude.HasValue)
-                aircraft.Altitude = @event.LastAltitude;
-            
-            await _aircraftRepository.SaveAsync(aircraft);
-        }
+        aircraft.LastSeen = @event.LastSeenAt;
+        aircraft.LastUpdated = @event.OccurredAt;
+        
+        // Update last known position if provided
+        if (@event.LastLatitude.HasValue)
+            aircraft.Latitude = @event.LastLatitude;
+        
+        if (@event.LastLongitude.HasValue)
+            aircraft.Longitude = @event.LastLongitude;
+        
+        if (@event.LastAltitude.HasValue)
+            aircraft.Altitude = @event.LastAltitude;
+        
+        await _aircraftRepository.SaveAsync(aircraft);
     }
 
     private bool IsAircraftEvent(DomainEvent @event)

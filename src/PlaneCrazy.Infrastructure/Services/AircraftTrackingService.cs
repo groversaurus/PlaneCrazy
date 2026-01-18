@@ -112,7 +112,7 @@ public class AircraftTrackingService
 
     private bool HasPositionChanged(Aircraft? existing, Aircraft updated)
     {
-        if (existing == null) return true;
+        if (existing == null) return false;
         
         return existing.Latitude != updated.Latitude
             || existing.Longitude != updated.Longitude
@@ -125,7 +125,7 @@ public class AircraftTrackingService
 
     private bool HasIdentityChanged(Aircraft? existing, Aircraft updated)
     {
-        if (existing == null) return true;
+        if (existing == null) return false;
         
         return existing.Registration != updated.Registration
             || existing.TypeCode != updated.TypeCode
