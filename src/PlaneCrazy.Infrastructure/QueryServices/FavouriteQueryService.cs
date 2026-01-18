@@ -23,11 +23,19 @@ public class FavouriteQueryService : IFavouriteQueryService
     public async Task<IEnumerable<FavouriteQueryResult>> GetAllFavouritesAsync()
     {
         var favourites = await _favouriteRepository.GetAllAsync();
+        
+        // Batch load all comments to avoid N+1 queries
+        var allComments = await _commentRepository.GetAllAsync();
+        var commentsByEntity = allComments
+            .Where(c => !c.IsDeleted)
+            .GroupBy(c => (c.EntityType, c.EntityId))
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<FavouriteQueryResult>();
 
         foreach (var fav in favourites)
         {
-            results.Add(await MapToQueryResultAsync(fav));
+            results.Add(MapToQueryResultWithCache(fav, commentsByEntity));
         }
 
         return results;
@@ -36,11 +44,19 @@ public class FavouriteQueryService : IFavouriteQueryService
     public async Task<IEnumerable<FavouriteQueryResult>> GetFavouritesByTypeAsync(string entityType)
     {
         var favourites = await _favouriteRepository.GetByEntityTypeAsync(entityType);
+        
+        // Batch load all comments to avoid N+1 queries
+        var allComments = await _commentRepository.GetAllAsync();
+        var commentsByEntity = allComments
+            .Where(c => !c.IsDeleted)
+            .GroupBy(c => (c.EntityType, c.EntityId))
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<FavouriteQueryResult>();
 
         foreach (var fav in favourites)
         {
-            results.Add(await MapToQueryResultAsync(fav));
+            results.Add(MapToQueryResultWithCache(fav, commentsByEntity));
         }
 
         return results;
@@ -86,6 +102,26 @@ public class FavouriteQueryService : IFavouriteQueryService
             FavouritedAt = favourite.FavouritedAt,
             Metadata = favourite.Metadata,
             CommentCount = commentCount.Count(),
+            Registration = favourite.Metadata.GetValueOrDefault("Registration"),
+            TypeCode = favourite.Metadata.GetValueOrDefault("TypeCode"),
+            TypeName = favourite.Metadata.GetValueOrDefault("TypeName"),
+            Name = favourite.Metadata.GetValueOrDefault("Name")
+        };
+    }
+
+    private FavouriteQueryResult MapToQueryResultWithCache(
+        Domain.Entities.Favourite favourite, 
+        Dictionary<(string EntityType, string EntityId), int> commentsByEntity)
+    {
+        var commentCount = commentsByEntity.GetValueOrDefault((favourite.EntityType, favourite.EntityId), 0);
+
+        return new FavouriteQueryResult
+        {
+            EntityType = favourite.EntityType,
+            EntityId = favourite.EntityId,
+            FavouritedAt = favourite.FavouritedAt,
+            Metadata = favourite.Metadata,
+            CommentCount = commentCount,
             Registration = favourite.Metadata.GetValueOrDefault("Registration"),
             TypeCode = favourite.Metadata.GetValueOrDefault("TypeCode"),
             TypeName = favourite.Metadata.GetValueOrDefault("TypeName"),

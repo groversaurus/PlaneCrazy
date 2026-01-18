@@ -38,11 +38,27 @@ public class AircraftQueryService : IAircraftQueryService
     public async Task<IEnumerable<AircraftQueryResult>> GetAllAircraftAsync()
     {
         var aircraft = await _aircraftRepository.GetAllAsync();
+        
+        // Batch load favourites and comments to avoid N+1 queries
+        var allFavourites = await _favouriteRepository.GetAllAsync();
+        var allComments = await _commentRepository.GetAllAsync();
+        
+        var favouritedAircraftIds = new HashSet<string>(
+            allFavourites
+                .Where(f => f.EntityType == "Aircraft")
+                .Select(f => f.EntityId)
+        );
+        
+        var commentsByAircraft = allComments
+            .Where(c => c.EntityType == "Aircraft" && !c.IsDeleted)
+            .GroupBy(c => c.EntityId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<AircraftQueryResult>();
 
         foreach (var plane in aircraft)
         {
-            results.Add(await MapToQueryResultAsync(plane));
+            results.Add(MapToQueryResultWithCache(plane, favouritedAircraftIds, commentsByAircraft));
         }
 
         return results;
@@ -61,14 +77,13 @@ public class AircraftQueryService : IAircraftQueryService
         var comments = await _commentRepository.GetActiveByEntityAsync("Aircraft", icao24);
         var commentResults = comments.Select(MapCommentToQueryResult).ToList();
 
-        var isFavourited = await _favouriteRepository.GetByIdAsync($"Aircraft_{icao24}") != null;
         var favourite = await _favouriteRepository.GetByIdAsync($"Aircraft_{icao24}");
 
         return new AircraftWithDetailsQueryResult
         {
             Aircraft = aircraftResult,
             Comments = commentResults,
-            IsFavourited = isFavourited,
+            IsFavourited = favourite != null,
             FavouritedAt = favourite?.FavouritedAt
         };
     }
@@ -82,14 +97,29 @@ public class AircraftQueryService : IAircraftQueryService
             .Distinct()
             .ToList();
 
+        var allAircraft = await _aircraftRepository.GetAllAsync();
+        var aircraftMap = allAircraft.ToDictionary(a => a.Icao24);
+        
+        // Batch load favourites and comments to avoid N+1 queries
+        var allFavourites = await _favouriteRepository.GetAllAsync();
+        var favouritedAircraftIds = new HashSet<string>(
+            allFavourites
+                .Where(f => f.EntityType == "Aircraft")
+                .Select(f => f.EntityId)
+        );
+        
+        var commentsByAircraft = allComments
+            .Where(c => c.EntityType == "Aircraft" && !c.IsDeleted)
+            .GroupBy(c => c.EntityId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<AircraftQueryResult>();
 
         foreach (var icao24 in aircraftWithComments)
         {
-            var aircraft = await _aircraftRepository.GetByIdAsync(icao24);
-            if (aircraft != null)
+            if (aircraftMap.TryGetValue(icao24, out var aircraft))
             {
-                results.Add(await MapToQueryResultAsync(aircraft));
+                results.Add(MapToQueryResultWithCache(aircraft, favouritedAircraftIds, commentsByAircraft));
             }
         }
 
@@ -101,6 +131,22 @@ public class AircraftQueryService : IAircraftQueryService
     {
         var favouriteAirports = await _favouriteRepository.GetByEntityTypeAsync("Airport");
         var allAircraft = await _aircraftRepository.GetAllAsync();
+        
+        // Batch load all data to avoid N+1 queries
+        var allFavourites = await _favouriteRepository.GetAllAsync();
+        var allComments = await _commentRepository.GetAllAsync();
+        
+        var favouritedAircraftIds = new HashSet<string>(
+            allFavourites
+                .Where(f => f.EntityType == "Aircraft")
+                .Select(f => f.EntityId)
+        );
+        
+        var commentsByAircraft = allComments
+            .Where(c => c.EntityType == "Aircraft" && !c.IsDeleted)
+            .GroupBy(c => c.EntityId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<AirportNearbyAircraftQueryResult>();
 
         foreach (var favAirport in favouriteAirports)
@@ -126,7 +172,7 @@ public class AircraftQueryService : IAircraftQueryService
                 {
                     nearbyAircraft.Add(new AircraftDistanceQueryResult
                     {
-                        Aircraft = await MapToQueryResultAsync(aircraft),
+                        Aircraft = MapToQueryResultWithCache(aircraft, favouritedAircraftIds, commentsByAircraft),
                         DistanceNauticalMiles = distance
                     });
                 }
@@ -153,12 +199,27 @@ public class AircraftQueryService : IAircraftQueryService
         var allAircraft = await _aircraftRepository.GetAllAsync();
         var filtered = allAircraft.Where(a => 
             a.Callsign != null && 
-            a.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
+            a.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase)).ToList();
 
+        // Batch load favourites and comments to avoid N+1 queries
+        var allFavourites = await _favouriteRepository.GetAllAsync();
+        var allComments = await _commentRepository.GetAllAsync();
+        
+        var favouritedAircraftIds = new HashSet<string>(
+            allFavourites
+                .Where(f => f.EntityType == "Aircraft")
+                .Select(f => f.EntityId)
+        );
+        
+        var commentsByAircraft = allComments
+            .Where(c => c.EntityType == "Aircraft" && !c.IsDeleted)
+            .GroupBy(c => c.EntityId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<AircraftQueryResult>();
         foreach (var aircraft in filtered)
         {
-            results.Add(await MapToQueryResultAsync(aircraft));
+            results.Add(MapToQueryResultWithCache(aircraft, favouritedAircraftIds, commentsByAircraft));
         }
 
         return results;
@@ -169,12 +230,27 @@ public class AircraftQueryService : IAircraftQueryService
         var allAircraft = await _aircraftRepository.GetAllAsync();
         var filtered = allAircraft.Where(a => 
             a.TypeCode != null && 
-            a.TypeCode.Equals(typeCode, StringComparison.OrdinalIgnoreCase));
+            a.TypeCode.Equals(typeCode, StringComparison.OrdinalIgnoreCase)).ToList();
 
+        // Batch load favourites and comments to avoid N+1 queries
+        var allFavourites = await _favouriteRepository.GetAllAsync();
+        var allComments = await _commentRepository.GetAllAsync();
+        
+        var favouritedAircraftIds = new HashSet<string>(
+            allFavourites
+                .Where(f => f.EntityType == "Aircraft")
+                .Select(f => f.EntityId)
+        );
+        
+        var commentsByAircraft = allComments
+            .Where(c => c.EntityType == "Aircraft" && !c.IsDeleted)
+            .GroupBy(c => c.EntityId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        
         var results = new List<AircraftQueryResult>();
         foreach (var aircraft in filtered)
         {
-            results.Add(await MapToQueryResultAsync(aircraft));
+            results.Add(MapToQueryResultWithCache(aircraft, favouritedAircraftIds, commentsByAircraft));
         }
 
         return results;
@@ -204,6 +280,33 @@ public class AircraftQueryService : IAircraftQueryService
             TotalUpdates = aircraft.TotalUpdates,
             IsFavourited = isFavourited,
             CommentCount = comments.Count(),
+            Origin = aircraft.Origin,
+            Destination = aircraft.Destination
+        };
+    }
+
+    private AircraftQueryResult MapToQueryResultWithCache(
+        Aircraft aircraft, 
+        HashSet<string> favouritedAircraftIds, 
+        Dictionary<string, int> commentsByAircraft)
+    {
+        return new AircraftQueryResult
+        {
+            Icao24 = aircraft.Icao24,
+            Registration = aircraft.Registration,
+            TypeCode = aircraft.TypeCode,
+            Callsign = aircraft.Callsign,
+            Latitude = aircraft.Latitude,
+            Longitude = aircraft.Longitude,
+            Altitude = aircraft.Altitude,
+            Velocity = aircraft.Velocity,
+            Track = aircraft.Track,
+            OnGround = aircraft.OnGround,
+            LastSeen = aircraft.LastSeen,
+            LastUpdated = aircraft.LastUpdated,
+            TotalUpdates = aircraft.TotalUpdates,
+            IsFavourited = favouritedAircraftIds.Contains(aircraft.Icao24),
+            CommentCount = commentsByAircraft.GetValueOrDefault(aircraft.Icao24, 0),
             Origin = aircraft.Origin,
             Destination = aircraft.Destination
         };
