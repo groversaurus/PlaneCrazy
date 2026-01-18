@@ -33,10 +33,17 @@ public static class PlaneCrazyPaths
     {
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         
-        // If MyDocuments is not available (e.g., on Linux), fall back to user's home directory
+        // If MyDocuments is not available (common on Unix-like systems), fall back to user's home directory
         if (string.IsNullOrEmpty(documentsPath))
         {
             documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            
+            // Final fallback if UserProfile is also unavailable
+            if (string.IsNullOrEmpty(documentsPath))
+            {
+                throw new InvalidOperationException(
+                    "Unable to determine user directory. Both MyDocuments and UserProfile special folders are unavailable.");
+            }
         }
         
         BasePath = Path.Combine(documentsPath, "PlaneCrazy");
