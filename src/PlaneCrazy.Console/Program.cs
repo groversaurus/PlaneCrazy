@@ -7,6 +7,7 @@ using PlaneCrazy.Infrastructure;
 using PlaneCrazy.Infrastructure.DependencyInjection;
 using PlaneCrazy.Infrastructure.Projections;
 using PlaneCrazy.Infrastructure.Repositories;
+using PlaneCrazy.Infrastructure.Services;
 
 namespace PlaneCrazy.Console;
 
@@ -25,6 +26,8 @@ class Program
     private static IAircraftQueryService _aircraftQueryService = null!;
     private static ICommentQueryService _commentQueryService = null!;
     private static IFavouriteQueryService _favouriteQueryService = null!;
+    private static IAirportLookupService _airportLookupService = null!;
+    private static ActiveAirportService _activeAirportService = null!;
 
     static async Task Main(string[] args)
     {
@@ -79,6 +82,9 @@ class Program
                     await ViewEventsAsync();
                     break;
                 case "5":
+                    await SetActiveAirportAsync();
+                    break;
+                case "6":
                     running = false;
                     break;
                 default:
@@ -115,6 +121,8 @@ class Program
         _aircraftQueryService = _serviceProvider.GetRequiredService<IAircraftQueryService>();
         _commentQueryService = _serviceProvider.GetRequiredService<ICommentQueryService>();
         _favouriteQueryService = _serviceProvider.GetRequiredService<IFavouriteQueryService>();
+        _airportLookupService = _serviceProvider.GetRequiredService<IAirportLookupService>();
+        _activeAirportService = _serviceProvider.GetRequiredService<ActiveAirportService>();
         
         // Show projection statistics
         var stats = _dispatcher.GetProjectionStatistics();
@@ -142,11 +150,27 @@ class Program
         System.Console.WriteLine("║            Main Menu                  ║");
         System.Console.WriteLine("╚═══════════════════════════════════════╝");
         System.Console.WriteLine();
+        
+        // Show active airport status
+        var activeAirport = _activeAirportService.GetActiveAirport();
+        if (activeAirport != null)
+        {
+            System.Console.WriteLine($"🛩️  Active Area: {activeAirport.Name} ({activeAirport.IcaoCode})");
+            System.Console.WriteLine($"   Radius: {activeAirport.RadiusDegrees:F1}° (~{activeAirport.RadiusDegrees * 111:F0}km)");
+            System.Console.WriteLine();
+        }
+        else
+        {
+            System.Console.WriteLine("🌍 Active Area: Europe (default)");
+            System.Console.WriteLine();
+        }
+        
         System.Console.WriteLine("1. Fetch and View Aircraft");
         System.Console.WriteLine("2. Manage Favourites");
         System.Console.WriteLine("3. Manage Comments");
         System.Console.WriteLine("4. View Event History");
-        System.Console.WriteLine("5. Exit");
+        System.Console.WriteLine("5. Set Active Airport");
+        System.Console.WriteLine("6. Exit");
         System.Console.WriteLine();
         System.Console.Write("Enter your choice: ");
     }
@@ -286,6 +310,15 @@ class Program
                 System.Console.WriteLine($"  {meta.Key}: {meta.Value}");
             }
             
+            // Display coordinates for airports
+            if (entityType == "Airport" && 
+                fav.Metadata.TryGetValue("Latitude", out var lat) && 
+                fav.Metadata.TryGetValue("Longitude", out var lon) &&
+                !string.IsNullOrEmpty(lat) && !string.IsNullOrEmpty(lon))
+            {
+                System.Console.WriteLine($"  Location: {lat}, {lon}");
+            }
+            
             // Show comments
             if (fav.CommentCount > 0)
             {
@@ -370,13 +403,160 @@ class Program
             return;
         }
 
-        System.Console.Write("Enter airport name (optional): ");
-        var name = System.Console.ReadLine()?.Trim();
+        // Check if already favourited (get cached info from projection)
+        var existingFavourite = await _favouriteRepo.GetByIdAsync($"Airport_{icaoCode}");
+        string? cachedName = existingFavourite?.Metadata.GetValueOrDefault("Name");
+        double? cachedLat = existingFavourite?.Metadata.ContainsKey("Latitude") == true 
+            ? (double.TryParse(existingFavourite.Metadata["Latitude"], out var cachedLatParsed) ? cachedLatParsed : null) 
+            : null;
+        double? cachedLon = existingFavourite?.Metadata.ContainsKey("Longitude") == true 
+            ? (double.TryParse(existingFavourite.Metadata["Longitude"], out var cachedLonParsed) ? cachedLonParsed : null) 
+            : null;
+
+        // Auto-lookup airport information
+        var airportInfo = await _airportLookupService.LookupAsync(icaoCode);
+        
+        string? name;
+        double? latitude;
+        double? longitude;
+        
+        // If we have both cached and lookup data, and they differ, let user choose
+        if (existingFavourite != null && airportInfo != null)
+        {
+            bool namesDiffer = !string.Equals(cachedName, airportInfo.Name, StringComparison.OrdinalIgnoreCase);
+            bool latDiffers = cachedLat.HasValue && Math.Abs(cachedLat.Value - airportInfo.Latitude) > 0.0001;
+            bool lonDiffers = cachedLon.HasValue && Math.Abs(cachedLon.Value - airportInfo.Longitude) > 0.0001;
+            
+            if (namesDiffer || latDiffers || lonDiffers)
+            {
+                System.Console.WriteLine($"\n⚠ Airport {icaoCode} is already favourited with different information:");
+                System.Console.WriteLine();
+                System.Console.WriteLine("┌─────────────────────┬──────────────────────────────────┬──────────────────────────────────┐");
+                System.Console.WriteLine("│ Field               │ Cached (Current)                 │ Lookup (Database)                │");
+                System.Console.WriteLine("├─────────────────────┼──────────────────────────────────┼──────────────────────────────────┤");
+                System.Console.WriteLine($"│ Name                │ {(cachedName ?? "(none)"),-32} │ {airportInfo.Name,-32} │");
+                System.Console.WriteLine($"│ Latitude            │ {(cachedLat?.ToString("F6") ?? "(none)"),-32} │ {airportInfo.Latitude.ToString("F6"),-32} │");
+                System.Console.WriteLine($"│ Longitude           │ {(cachedLon?.ToString("F6") ?? "(none)"),-32} │ {airportInfo.Longitude.ToString("F6"),-32} │");
+                System.Console.WriteLine("└─────────────────────┴──────────────────────────────────┴──────────────────────────────────┘");
+                System.Console.WriteLine();
+                System.Console.Write("Which version do you want to keep? [C]ached / [L]ookup / [M]anual: ");
+                var choice = System.Console.ReadLine()?.Trim().ToUpper();
+                
+                if (choice == "L")
+                {
+                    name = airportInfo.Name;
+                    latitude = airportInfo.Latitude;
+                    longitude = airportInfo.Longitude;
+                    System.Console.WriteLine("✓ Using lookup data");
+                }
+                else if (choice == "M")
+                {
+                    System.Console.Write($"Enter airport name [cached: {cachedName}, lookup: {airportInfo.Name}]: ");
+                    var nameInput = System.Console.ReadLine()?.Trim();
+                    name = string.IsNullOrEmpty(nameInput) ? (cachedName ?? airportInfo.Name) : nameInput;
+                    
+                    System.Console.Write($"Enter latitude [cached: {cachedLat:F6}, lookup: {airportInfo.Latitude:F6}]: ");
+                    var latInput = System.Console.ReadLine()?.Trim();
+                    latitude = string.IsNullOrEmpty(latInput) ? (cachedLat ?? airportInfo.Latitude) : (double.TryParse(latInput, out var manualLat) ? manualLat : cachedLat ?? airportInfo.Latitude);
+                    
+                    System.Console.Write($"Enter longitude [cached: {cachedLon:F6}, lookup: {airportInfo.Longitude:F6}]: ");
+                    var lonInput = System.Console.ReadLine()?.Trim();
+                    longitude = string.IsNullOrEmpty(lonInput) ? (cachedLon ?? airportInfo.Longitude) : (double.TryParse(lonInput, out var manualLon) ? manualLon : cachedLon ?? airportInfo.Longitude);
+                }
+                else // Default to cached
+                {
+                    name = cachedName;
+                    latitude = cachedLat;
+                    longitude = cachedLon;
+                    System.Console.WriteLine("✓ Keeping cached data");
+                }
+            }
+            else
+            {
+                // No differences, use existing data
+                System.Console.WriteLine($"✓ Airport {icaoCode} already favourited (no changes detected)");
+                name = cachedName;
+                latitude = cachedLat;
+                longitude = cachedLon;
+            }
+        }
+        // If already favourited but no lookup data, offer to keep or update
+        else if (existingFavourite != null)
+        {
+            System.Console.WriteLine($"✓ Airport {icaoCode} already favourited");
+            System.Console.WriteLine($"  Name: {cachedName ?? "(none)"}");
+            System.Console.WriteLine($"  Location: {(cachedLat.HasValue ? cachedLat.Value.ToString("F6") : "(none)")}, {(cachedLon.HasValue ? cachedLon.Value.ToString("F6") : "(none)")}");
+            System.Console.WriteLine("⚠ Not found in lookup database");
+            System.Console.WriteLine();
+            System.Console.Write("Keep cached data? [Y]es / [N]o (manual entry): ");
+            var keep = System.Console.ReadLine()?.Trim().ToUpper();
+            
+            if (keep == "N")
+            {
+                System.Console.Write("Enter airport name: ");
+                name = System.Console.ReadLine()?.Trim();
+                
+                System.Console.Write("Enter latitude: ");
+                var latInput = System.Console.ReadLine()?.Trim();
+                latitude = double.TryParse(latInput, out var updateLat) ? updateLat : cachedLat;
+                
+                System.Console.Write("Enter longitude: ");
+                var lonInput = System.Console.ReadLine()?.Trim();
+                longitude = double.TryParse(lonInput, out var updateLon) ? updateLon : cachedLon;
+            }
+            else
+            {
+                name = cachedName;
+                latitude = cachedLat;
+                longitude = cachedLon;
+            }
+        }
+        // New favourite with lookup data
+        else if (airportInfo != null)
+        {
+            System.Console.WriteLine($"✓ Found: {airportInfo.Name}");
+            System.Console.WriteLine($"  Location: {airportInfo.Latitude:F6}, {airportInfo.Longitude:F6}");
+            if (!string.IsNullOrEmpty(airportInfo.City))
+            {
+                System.Console.WriteLine($"  City: {airportInfo.City}, {airportInfo.Country}");
+            }
+            System.Console.WriteLine();
+            
+            // Offer defaults with option to override
+            System.Console.Write($"Enter airport name [default: {airportInfo.Name}]: ");
+            var nameInput = System.Console.ReadLine()?.Trim();
+            name = string.IsNullOrEmpty(nameInput) ? airportInfo.Name : nameInput;
+            
+            System.Console.Write($"Enter latitude [default: {airportInfo.Latitude:F6}]: ");
+            var latInput = System.Console.ReadLine()?.Trim();
+            latitude = string.IsNullOrEmpty(latInput) ? airportInfo.Latitude : (double.TryParse(latInput, out var newLat) ? newLat : airportInfo.Latitude);
+            
+            System.Console.Write($"Enter longitude [default: {airportInfo.Longitude:F6}]: ");
+            var lonInput = System.Console.ReadLine()?.Trim();
+            longitude = string.IsNullOrEmpty(lonInput) ? airportInfo.Longitude : (double.TryParse(lonInput, out var newLon) ? newLon : airportInfo.Longitude);
+        }
+        // New favourite without lookup data
+        else
+        {
+            System.Console.WriteLine($"⚠ Airport {icaoCode} not found in database.");
+            System.Console.Write("Enter airport name (optional): ");
+            name = System.Console.ReadLine()?.Trim();
+            
+            System.Console.Write("Enter latitude (optional): ");
+            var latInput = System.Console.ReadLine()?.Trim();
+            latitude = double.TryParse(latInput, out var enteredLat) ? enteredLat : null;
+            
+            System.Console.Write("Enter longitude (optional): ");
+            var lonInput = System.Console.ReadLine()?.Trim();
+            longitude = double.TryParse(lonInput, out var enteredLon) ? enteredLon : null;
+        }
 
         var @event = new AirportFavourited
         {
             IcaoCode = icaoCode,
-            Name = name
+            Name = name,
+            Latitude = latitude,
+            Longitude = longitude
         };
 
         var result = await _dispatcher.DispatchAsync(@event);
@@ -591,5 +771,114 @@ class Program
             
             System.Console.WriteLine();
         }
+    }
+
+    private static async Task SetActiveAirportAsync()
+    {
+        System.Console.Clear();
+        System.Console.WriteLine("╔═══════════════════════════════════════╗");
+        System.Console.WriteLine("║       Set Active Airport              ║");
+        System.Console.WriteLine("╚═══════════════════════════════════════╝");
+        System.Console.WriteLine();
+
+        var currentActive = _activeAirportService.GetActiveAirport();
+        if (currentActive != null)
+        {
+            System.Console.WriteLine($"Current active: {currentActive.Name} ({currentActive.IcaoCode})");
+            System.Console.WriteLine($"Location: {currentActive.Latitude:F4}, {currentActive.Longitude:F4}");
+            System.Console.WriteLine($"Radius: {currentActive.RadiusDegrees:F1}° (~{currentActive.RadiusDegrees * 111:F0}km)");
+            System.Console.WriteLine();
+        }
+
+        // Get all favourite airports
+        var favourites = await _favouriteQueryService.GetFavouriteAirportsAsync();
+        var airportList = favourites.ToList();
+
+        if (!airportList.Any())
+        {
+            System.Console.WriteLine("No favourite airports found.");
+            System.Console.WriteLine("Please favourite an airport first from the Manage Favourites menu.");
+            System.Console.WriteLine();
+            System.Console.Write("Press any key to continue...");
+            System.Console.ReadKey();
+            return;
+        }
+
+        System.Console.WriteLine("Favourite Airports:");
+        System.Console.WriteLine();
+
+        for (int i = 0; i < airportList.Count; i++)
+        {
+            var fav = airportList[i];
+            var metadata = fav.Metadata ?? new Dictionary<string, string>();
+            var name = metadata.GetValueOrDefault("Name", "");
+            var location = "";
+            
+            if (metadata.TryGetValue("Latitude", out var lat) && metadata.TryGetValue("Longitude", out var lon))
+            {
+                location = $" at {lat}, {lon}";
+            }
+            
+            var activeMarker = currentActive?.IcaoCode == fav.EntityId ? " ✓ ACTIVE" : "";
+            System.Console.WriteLine($"{i + 1}. {fav.EntityId} - {name}{location}{activeMarker}");
+        }
+
+        System.Console.WriteLine();
+        System.Console.WriteLine("0. Clear active airport");
+        System.Console.WriteLine();
+        System.Console.Write("Enter airport number to set as active (or 0 to clear): ");
+
+        var input = System.Console.ReadLine()?.Trim();
+        if (!int.TryParse(input, out var choice) || choice < 0 || choice > airportList.Count)
+        {
+            System.Console.WriteLine("Invalid choice.");
+            System.Console.WriteLine();
+            System.Console.Write("Press any key to continue...");
+            System.Console.ReadKey();
+            return;
+        }
+
+        if (choice == 0)
+        {
+            await _activeAirportService.ClearActiveAirportAsync();
+            System.Console.WriteLine("\n✓ Active airport cleared. Using default Europe-wide view.");
+        }
+        else
+        {
+            var selectedFav = airportList[choice - 1];
+            var metadata = selectedFav.Metadata ?? new Dictionary<string, string>();
+            var name = metadata.GetValueOrDefault("Name", selectedFav.EntityId);
+
+            if (!metadata.TryGetValue("Latitude", out var latStr) || 
+                !metadata.TryGetValue("Longitude", out var lonStr) ||
+                !double.TryParse(latStr, out var lat) ||
+                !double.TryParse(lonStr, out var lon))
+            {
+                System.Console.WriteLine("\n✗ Selected airport has no location data. Cannot set as active.");
+                System.Console.WriteLine();
+                System.Console.Write("Press any key to continue...");
+                System.Console.ReadKey();
+                return;
+            }
+
+            // Ask for search distance in nautical miles
+            System.Console.Write($"\nEnter search distance in nautical miles (default 100, max 250): ");
+            var distInput = System.Console.ReadLine()?.Trim();
+            double distNm = 100.0;
+            if (!string.IsNullOrEmpty(distInput) && double.TryParse(distInput, out var d))
+            {
+                distNm = Math.Max(1.0, Math.Min(d, 250.0));
+            }
+            // Convert to degrees for storage (1 deg ≈ 60nm)
+            var radiusDegrees = distNm / 60.0;
+
+            await _activeAirportService.SetActiveAirportAsync(selectedFav.EntityId, name, lat, lon, radiusDegrees);
+            System.Console.WriteLine($"\n✓ Active airport set to {name} ({selectedFav.EntityId})");
+            System.Console.WriteLine($"  Search distance: {distNm:F0}nm (~{distNm * 1.852:F0}km)");
+        }
+
+        System.Console.WriteLine();
+        System.Console.Write("Press any key to continue...");
+        System.Console.ReadKey();
     }
 }
