@@ -57,6 +57,10 @@ public static class ServiceCollectionExtensions
 
         // Register Aircraft Data Service as Singleton
         services.AddSingleton<IAircraftDataService, AdsbFiAircraftService>();
+        
+        // Register Airport Services as Singleton
+        services.AddSingleton<IAirportLookupService, AirportLookupService>();
+        services.AddSingleton<ActiveAirportService>();
 
         // Register Command Handlers as Transient (stateless handlers created per request)
         services.AddTransient<ICommandHandler<AddCommentCommand>, AddCommentCommandHandler>();

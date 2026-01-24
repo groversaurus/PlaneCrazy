@@ -80,6 +80,29 @@ var lat2 = 70.0;  // Northern boundary
 var lon2 = 40.0;  // Eastern boundary
 ```
 
+### Distance-Based Query (Alternative API v3)
+
+**Base URL**: `https://opendata.adsb.fi/api/v3`
+
+**Endpoint**: `GET /lat/{lat}/lon/{lon}/dist/{distance_km}`
+
+**Example - EGCC Manchester Airport**:
+```bash
+curl https://opendata.adsb.fi/api/v3/lat/53.3537/lon/-2.275/dist/100
+```
+
+**Parameters**:
+- `lat`: Center point latitude
+- `lon`: Center point longitude  
+- `dist`: Radius distance in kilometers
+
+**Manchester Airport (EGCC) Coordinates**:
+- Latitude: 53.3537
+- Longitude: -2.275
+- Example radius: 100km
+
+**Note**: This is the v3 API endpoint format. The current implementation uses v2 with bounding boxes.
+
 ### Response Format
 
 **Content-Type**: `application/json`

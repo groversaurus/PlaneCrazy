@@ -74,7 +74,9 @@ public class FavouriteProjection : IProjection
                     FavouritedAt = airportFavourited.OccurredAt,
                     Metadata = new Dictionary<string, string>
                     {
-                        ["Name"] = airportFavourited.Name ?? ""
+                        ["Name"] = airportFavourited.Name ?? "",
+                        ["Latitude"] = airportFavourited.Latitude?.ToString("F6") ?? "",
+                        ["Longitude"] = airportFavourited.Longitude?.ToString("F6") ?? ""
                     }
                 });
                 return true;
